@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-ml-platform-005",
+  "serviceName": "Quant ML Platform",
+  "serviceType": "machine-learning",
+  "description": "Machine learning model training, serving, and monitoring platform for FX quant strategies. Provides managed infrastructure for training XGBoost, LSTM, Transformer, and ensemble models on GPU clusters. Features include automated feature engineering, walk-forward cross-validation, hyperparameter tuning (Optuna), model versioning (MLflow), and real-time inference via Azure ML managed endpoints. For AUD/USD, the platform hosts a production ensemble model (XGBoost + LSTM + Ridge) that generates 5-day directional forecasts, retrained weekly on 120+ features spanning price action, volatility, order flow, and macro indicators. SHAP-based explainability dashboards are provided for model governance and regulatory compliance.",
+  "endpoints": "POST /api/v2/ml/predict/{modelId} — real-time model inference\nPOST /api/v2/ml/train — submit model training job\nGET /api/v2/ml/models — list registered models and versions\nGET /api/v2/ml/explain/{modelId}/{predictionId} — SHAP explanation for a prediction\nGET /api/v2/ml/monitor/{modelId} — model drift and performance metrics",
+  "dependencies": ["quant-market-data-service", "azure-ml-workspace", "azure-kubernetes-service", "azure-blob-storage", "mlflow-tracking-server"],
+  "owner": "quant-research-ml",
+  "tags": ["machine-learning", "XGBoost", "LSTM", "ensemble", "MLOps", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-23T10:00:00Z"
+}

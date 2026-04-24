@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-market-data-003",
+  "serviceName": "Quant Market Data Service",
+  "serviceType": "data-feed",
+  "description": "Centralised market data aggregation and distribution service for FX quant applications. Ingests tick-level data from Reuters, Bloomberg, EBS, and Cboe FX via low-latency adapters. Provides normalised real-time spot rates, forward points, deposit rates, and option volatilities for 60+ currency pairs. For AUD/USD, the service enriches standard FX data with correlated commodity feeds (iron-ore SGX futures, copper LME) and macro indicators (RBA cash rate, AU employment data). Supports both push (WebSocket/gRPC streaming) and pull (REST snapshot) consumption patterns. Historical data API provides tick, 1-min, hourly, and daily bars going back to 2010.",
+  "endpoints": "GET /api/v2/marketdata/spot/{ccyPair} — real-time spot rate\nGET /api/v2/marketdata/forward/{ccyPair} — forward points term structure\nGET /api/v2/marketdata/vol-surface/{ccyPair} — implied volatility surface\nGET /api/v2/marketdata/history/{ccyPair} — historical time series\nWS /ws/v2/marketdata/stream — WebSocket streaming endpoint",
+  "dependencies": ["reuters-elektron-adapter", "bloomberg-b-pipe-adapter", "azure-event-hubs", "azure-cosmos-db", "azure-redis-cache"],
+  "owner": "market-data-engineering",
+  "tags": ["market-data", "real-time", "historical", "FX", "AUD/USD", "iron-ore", "quant-platform"],
+  "lastUpdated": "2026-04-22T07:15:00Z"
+}

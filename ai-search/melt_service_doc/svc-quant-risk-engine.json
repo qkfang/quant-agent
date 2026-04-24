@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-risk-engine-001",
+  "serviceName": "Quant Risk Engine",
+  "serviceType": "risk-analytics",
+  "description": "Real-time and batch risk analytics engine for FX desks. Computes VaR, CVaR, Greeks, and scenario P&L for spot, forward, and option positions across G10 and EM currency pairs. Supports GARCH, EWMA, and historical simulation methodologies for volatility estimation. Provides pre-trade risk checks and post-trade attribution. The engine processes over 500,000 risk calculations per minute during peak London/NY overlap sessions. AUD/USD-specific capabilities include commodity-beta adjusted VaR and RBA-event volatility overlays.",
+  "endpoints": "POST /api/v2/risk/var — compute Value-at-Risk for a position set\nPOST /api/v2/risk/scenario — run custom scenario analysis\nGET /api/v2/risk/greeks/{positionId} — retrieve Greeks for a position\nPOST /api/v2/risk/stress-test — execute predefined stress-test suite\nGET /api/v2/risk/vol-surface/{ccyPair} — retrieve current volatility surface",
+  "dependencies": ["quant-market-data-service", "quant-pricing-engine", "position-management-service", "azure-redis-cache"],
+  "owner": "fx-quant-desk",
+  "tags": ["risk", "VaR", "Greeks", "GARCH", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-20T12:00:00Z"
+}

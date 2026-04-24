@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-portfolio-engine-008",
+  "serviceName": "Quant Portfolio Engine",
+  "serviceType": "portfolio-management",
+  "description": "Portfolio construction and optimisation engine for FX systematic strategies. Implements risk-parity, mean-variance (Markowitz), Black-Litterman, and hierarchical risk parity (HRP) allocation frameworks. Supports real-time portfolio rebalancing with configurable threshold bands and transaction cost constraints. For AUD/USD, the engine provides commodity-correlation-aware allocation that adjusts position sizing based on rolling iron-ore and copper betas. Computes portfolio-level analytics including Sharpe ratio, maximum drawdown, turnover, and risk contribution decomposition across all G10 FX pairs. Integrates with the execution engine for automated rebalancing order generation.",
+  "endpoints": "POST /api/v2/portfolio/optimise — run portfolio optimisation\nGET /api/v2/portfolio/{portfolioId} — current portfolio state and analytics\nPOST /api/v2/portfolio/rebalance — trigger portfolio rebalance\nGET /api/v2/portfolio/{portfolioId}/risk-decomposition — risk contribution by position\nGET /api/v2/portfolio/{portfolioId}/backtest — historical backtest results",
+  "dependencies": ["quant-risk-engine", "quant-signal-engine", "quant-execution-engine", "position-management-service", "azure-cosmos-db"],
+  "owner": "fx-portfolio-management",
+  "tags": ["portfolio", "risk-parity", "Black-Litterman", "optimisation", "rebalancing", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-18T11:45:00Z"
+}

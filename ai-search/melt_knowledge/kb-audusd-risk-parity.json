@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-risk-parity-007",
+  "title": "AUD/USD Risk Parity Allocation — Multi-Asset Portfolio Scenario",
+  "category": "Portfolio Construction",
+  "content": "The portfolio construction team evaluated AUD/USD exposure within a G10 FX risk-parity framework. The model equalises risk contribution across 9 G10 pairs using a shrinkage covariance estimator (Ledoit-Wolf). Current allocation: AUD/USD receives a 14.2% risk weight (notional USD 7.1M on a USD 50M portfolio), reflecting its moderate volatility relative to peers. Correlation structure: AUD/USD shows ρ = 0.72 with NZD/USD, ρ = 0.48 with copper futures, ρ = −0.35 with USD/JPY (safe-haven offset). Scenario A (stable correlations): the current allocation holds, expected annualised return = 2.8%, portfolio vol = 5.1%, Sharpe = 0.55. Scenario B (correlation breakdown): if AUD/USD-NZD/USD correlation drops below 0.50 (e.g., divergent central bank policies), AUD/USD allocation increases to 17.8% to maintain equal risk. Scenario C (tail-risk overlay): adding a 10-delta AUD/USD put option overlay (cost: 35 pips/quarter) reduces portfolio CVaR(99) by 18% in the risk-off regime. Rebalancing frequency: weekly with a 1% threshold band. The optimiser uses second-order cone programming (SOCP) via the CVXPY library.",
+  "severity": "low",
+  "service": "quant-portfolio-engine",
+  "tags": ["AUD/USD", "risk-parity", "portfolio", "allocation", "correlation", "CVaR", "FX", "quant-model"],
+  "lastUpdated": "2026-04-17T16:00:00Z"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-ml-ensemble-006",
+  "title": "AUD/USD Machine Learning Ensemble — 5-Day Directional Forecast",
+  "category": "Machine Learning",
+  "content": "The quant research team deployed an ensemble model combining XGBoost, LSTM, and Ridge Regression to forecast 5-day AUD/USD direction. Feature set (120 inputs): lagged returns (1d-20d), realised vol (5d, 21d, 63d), RSI, MACD, order-flow imbalance, AU-US rate spread, iron-ore returns, copper returns, S&P 500 returns, USD index (DXY), and VIX term structure slope. Training window: Jan 2018 – Dec 2024, validation: Jan – Jun 2025, test: Jul 2025 – Mar 2026. Ensemble weights (optimised via Bayesian stacking): XGBoost 0.45, LSTM 0.35, Ridge 0.20. Out-of-sample accuracy: 58.3% directional hit rate (vs 50% null), Sharpe 1.18 after transaction costs (2 pip round-trip). Current signal: 62% probability of AUD/USD rising over the next 5 days, driven by positive iron-ore momentum and mean-reverting USD strength. Scenario stress: if the VIX spikes above 25, LSTM hidden-state analysis shows the model flips to a bearish signal with 71% confidence. SHAP analysis identifies the top 3 features as: 5-day iron-ore return (importance 0.18), 21-day realised vol ratio (0.14), and AU-US 2Y spread change (0.11). Model is retrained weekly with walk-forward validation.",
+  "severity": "medium",
+  "service": "quant-ml-platform",
+  "tags": ["AUD/USD", "machine-learning", "XGBoost", "LSTM", "ensemble", "forecast", "FX", "quant-model"],
+  "lastUpdated": "2026-04-23T07:45:00Z"
+}

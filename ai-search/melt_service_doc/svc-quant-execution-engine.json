@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-execution-engine-006",
+  "serviceName": "Quant Execution Engine",
+  "serviceType": "execution",
+  "description": "Algorithmic execution engine for FX order routing and smart order management. Supports TWAP, VWAP, Implementation Shortfall (IS), and adaptive execution strategies across multiple ECN venues (EBS, Reuters Matching, Cboe FX, and bank bilateral streams). Provides real-time transaction cost analysis (TCA), market impact estimation, and execution quality monitoring. For AUD/USD, the engine includes venue-specific liquidity models calibrated to Sydney, Tokyo, London, and New York session profiles. Order-flow toxicity is monitored via VPIN (Volume-Synchronised Probability of Informed Trading) with automatic strategy adjustment when toxicity exceeds configurable thresholds. Supports FIX 4.4 and gRPC connectivity.",
+  "endpoints": "POST /api/v2/execution/order — submit execution order\nGET /api/v2/execution/order/{orderId} — order status and fills\nGET /api/v2/execution/tca/{orderId} — transaction cost analysis\nGET /api/v2/execution/liquidity/{ccyPair} — real-time liquidity snapshot\nPOST /api/v2/execution/algo-config — configure execution algorithm parameters",
+  "dependencies": ["quant-market-data-service", "fix-gateway-service", "position-management-service", "azure-event-hubs", "azure-redis-cache"],
+  "owner": "fx-electronic-trading",
+  "tags": ["execution", "algo-trading", "TWAP", "VWAP", "TCA", "VPIN", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-24T08:30:00Z"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-mean-reversion-003",
+  "title": "AUD/USD Ornstein-Uhlenbeck Mean Reversion — Carry Trade Signal",
+  "category": "Statistical Arbitrage",
+  "content": "The FX stat-arb desk fitted an Ornstein-Uhlenbeck (OU) process to AUD/USD spot rates using a 2-year rolling window. Calibrated parameters: long-run mean μ = 0.6620, mean-reversion speed θ = 8.4 (annualised half-life ≈ 30 trading days), diffusion σ = 0.072. Current spot at 0.6485 implies the pair is 1.35 standard deviations below equilibrium, generating a 'buy AUD' signal at the 68% confidence band. Scenario 1 (convergence): spot reverts to 0.6620 within 30 days, yielding +208 pips. Scenario 2 (extended dislocation): if US-China trade tensions escalate, the OU mean itself shifts down to 0.6400, invalidating the signal. Scenario 3 (carry unwind): a sudden AUD rate-cut narrows the carry differential and weakens the mean-reversion anchor. Back-test performance: Sharpe ratio 1.42 (2020-2025), max drawdown −3.8%, win rate 61%. The model is estimated via the exact discrete-time MLE method of Phillips and Yu (2009). Cointegration with NZD/USD is used as a confirmation filter — the AUD/NZD cross must remain within ±1 σ of its own OU mean for the signal to be active.",
+  "severity": "medium",
+  "service": "quant-signal-engine",
+  "tags": ["AUD/USD", "mean-reversion", "Ornstein-Uhlenbeck", "carry-trade", "stat-arb", "FX", "quant-model"],
+  "lastUpdated": "2026-04-19T10:45:00Z"
+}

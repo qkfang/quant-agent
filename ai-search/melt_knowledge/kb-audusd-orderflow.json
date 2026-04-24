@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-orderflow-008",
+  "title": "AUD/USD Order Flow & Microstructure Analysis — Intraday Liquidity Scenario",
+  "category": "Market Microstructure",
+  "content": "The electronic trading desk analysed AUD/USD intraday order-flow data from the primary ECN venues (EBS, Reuters Matching, and Cboe FX) over the last 30 trading days. Key metrics: average daily volume = USD 2.8B, bid-ask spread = 0.6 pips (London session) widening to 1.4 pips (Sydney session), top-of-book depth = USD 3.2M (median). Order-flow toxicity measured via the VPIN (Volume-Synchronised Probability of Informed Trading) indicator currently reads 0.38, below the 0.45 alert threshold. Scenario A (normal liquidity): execution of a USD 25M AUD/USD buy order via TWAP over 2 hours has estimated market impact of 0.8 pips, slippage cost = AUD 1,200. Scenario B (thin liquidity — post-RBA announcement): spread widens to 3.5 pips, VPIN spikes to 0.62, and the same order's market impact rises to 3.2 pips with estimated slippage cost = AUD 4,800. Scenario C (flash event): a sudden liquidity vacuum (similar to Jan 2019 JPY flash crash) causes spreads to blow out to 15+ pips; the execution algo switches to passive-only mode and pauses for 500ms between child orders. The Kyle lambda (permanent price impact coefficient) is estimated at 0.012 pips per USD 1M flow. The desk recommends using the adaptive IS (Implementation Shortfall) algorithm during Scenario B conditions.",
+  "severity": "medium",
+  "service": "quant-execution-engine",
+  "tags": ["AUD/USD", "order-flow", "microstructure", "VPIN", "liquidity", "execution", "FX", "quant-model"],
+  "lastUpdated": "2026-04-24T06:15:00Z"
+}

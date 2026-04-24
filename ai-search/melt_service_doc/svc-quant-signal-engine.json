@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-signal-engine-004",
+  "serviceName": "Quant Signal Engine",
+  "serviceType": "signal-generation",
+  "description": "Systematic trading signal generation platform for FX strategies. Runs mean-reversion (Ornstein-Uhlenbeck), momentum, carry-trade, and cross-asset signals on a configurable schedule. Supports signal composition, filtering, and portfolio-level aggregation. For AUD/USD, the engine maintains dedicated signal pipelines including: (1) OU mean-reversion with 30-day half-life calibration, (2) carry signal based on AU-US OIS differential, (3) commodity-beta momentum using iron-ore 20-day returns, and (4) risk-sentiment signal derived from VIX and credit spreads. Signals are published to downstream execution and portfolio engines via Azure Service Bus with sub-100ms latency.",
+  "endpoints": "GET /api/v2/signals/{ccyPair} — current signal values and metadata\nGET /api/v2/signals/{ccyPair}/history — historical signal time series\nPOST /api/v2/signals/backtest — run signal backtest over historical period\nGET /api/v2/signals/composite — aggregated multi-signal view\nPOST /api/v2/signals/config — update signal parameters",
+  "dependencies": ["quant-market-data-service", "quant-research-platform", "azure-service-bus", "azure-functions", "azure-cosmos-db"],
+  "owner": "fx-systematic-trading",
+  "tags": ["signals", "mean-reversion", "carry-trade", "momentum", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-19T14:45:00Z"
+}
