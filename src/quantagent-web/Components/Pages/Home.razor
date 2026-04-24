@@ -1,0 +1,143 @@
+﻿@page "/"
+
+<PageTitle>Quant Agent - Home</PageTitle>
+
+<div class="home-container">
+    <h1>🤖 Quant Agent</h1>
+    <h2>Multi-Model Scenario Analysis Platform</h2>
+
+    <div class="feature-description">
+        <p>
+            Run queries across multiple AI models that take different perspectives and reason with each other — 
+            building out the end-to-end view of potential outcomes for your trading scenarios.
+        </p>
+    </div>
+
+    <div class="agent-cards">
+        <div class="agent-card bull">
+            <div class="agent-avatar">🐂</div>
+            <h3>Bull Analyst</h3>
+            <p>Identifies upside potential, momentum signals, and favorable market conditions. Quantifies bullish opportunities with data-driven reasoning.</p>
+        </div>
+
+        <div class="agent-card bear">
+            <div class="agent-avatar">🐻</div>
+            <h3>Bear Analyst</h3>
+            <p>Focuses on downside risks, potential pitfalls, and adverse scenarios. Ensures critical risks are not overlooked in the analysis.</p>
+        </div>
+
+        <div class="agent-card risk">
+            <div class="agent-avatar">🛡️</div>
+            <h3>Risk Analyst</h3>
+            <p>Evaluates risk-adjusted returns, hedging strategies, and position sizing. Provides the risk-optimal approach that balances opportunity with protection.</p>
+        </div>
+
+        <div class="agent-card macro">
+            <div class="agent-avatar">🌍</div>
+            <h3>Macro Strategist</h3>
+            <p>Analyzes macroeconomic drivers, cross-asset correlations, and geopolitical impacts. Places scenarios within the broader economic context.</p>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <a href="debate" class="btn btn-primary btn-lg">
+            Start a Multi-Model Debate →
+        </a>
+    </div>
+</div>
+
+<style>
+    .home-container {
+        max-width: 960px;
+        margin: 0 auto;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+
+    .home-container h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.25rem;
+        color: #1a1a2e;
+    }
+
+    .home-container h2 {
+        font-size: 1.25rem;
+        color: #666;
+        font-weight: 400;
+        margin-bottom: 2rem;
+    }
+
+    .feature-description {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2.5rem;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    .agent-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .agent-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #ddd;
+        text-align: left;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .agent-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .agent-card.bull { border-left-color: #22c55e; }
+    .agent-card.bear { border-left-color: #ef4444; }
+    .agent-card.risk { border-left-color: #3b82f6; }
+    .agent-card.macro { border-left-color: #f59e0b; }
+
+    .agent-avatar {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .agent-card h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+        color: #1a1a2e;
+    }
+
+    .agent-card p {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .cta-section {
+        margin-top: 1rem;
+    }
+
+    .cta-section .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        color: white;
+        text-decoration: none;
+    }
+
+    .cta-section .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+</style>
