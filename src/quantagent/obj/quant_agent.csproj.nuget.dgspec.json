@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/runner/work/quant-agent/quant-agent/src/quantagent/quant_agent.csproj": {}
+  },
+  "projects": {
+    "/home/runner/work/quant-agent/quant-agent/src/quantagent/quant_agent.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/runner/work/quant-agent/quant-agent/src/quantagent/quant_agent.csproj",
+        "projectName": "quant_agent",
+        "projectPath": "/home/runner/work/quant-agent/quant-agent/src/quantagent/quant_agent.csproj",
+        "packagesPath": "/tmp/codeql-scratch-42753b527466c636/dbs/csharp/working/packages",
+        "outputPath": "/home/runner/work/quant-agent/quant-agent/src/quantagent/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/runner/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net10.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net10.0": {
+            "targetAlias": "net10.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "all"
+        },
+        "SdkAnalysisLevel": "10.0.200"
+      },
+      "frameworks": {
+        "net10.0": {
+          "targetAlias": "net10.0",
+          "dependencies": {
+            "Azure.AI.Extensions.OpenAI": {
+              "target": "Package",
+              "version": "[2.0.0, )"
+            },
+            "Azure.AI.Projects": {
+              "target": "Package",
+              "version": "[2.0.0, )"
+            },
+            "Azure.Identity": {
+              "target": "Package",
+              "version": "[1.20.0, )"
+            },
+            "Azure.Monitor.OpenTelemetry.AspNetCore": {
+              "target": "Package",
+              "version": "[1.4.0, )"
+            },
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[9.0.1, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[7.2.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[10.0.5, 10.0.5]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
