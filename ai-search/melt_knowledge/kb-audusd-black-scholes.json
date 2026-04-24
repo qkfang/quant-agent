@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-black-scholes-004",
+  "title": "AUD/USD Garman-Kohlhagen Option Pricing — Vanilla & Barrier Scenarios",
+  "category": "Option Pricing",
+  "content": "The derivatives desk priced a suite of AUD/USD vanilla and barrier options using the Garman-Kohlhagen (GK) extension of Black-Scholes for FX. Market data snapshot: spot = 0.6485, AUD deposit rate = 4.10%, USD deposit rate = 4.85%, 1M implied vol = 10.9%, 3M implied vol = 11.4%, 1Y implied vol = 12.1%. Scenario A — 1M ATM call: GK price = 0.0118 (182 pips), delta = 0.498, theta = −0.0003/day, vega = 0.0016/vol-pt. Scenario B — 3M 0.6300 put (3.6% OTM): GK price = 0.0089, delta = −0.31, break-even at 0.6211. Scenario C — 6M knock-in barrier call with barrier at 0.6800: priced via analytic Rubinstein-Reiner formula at 0.0042 vs 0.0196 for the equivalent vanilla, reflecting a 78% discount due to barrier probability. Vol surface analysis shows a persistent risk-reversal skew: 25-delta puts trade 0.8 vol points above 25-delta calls, indicating market demand for AUD downside protection. Stress test: a parallel 2-vol-point shift increases the 1M ATM call value by 12.4%. The desk monitors model risk by comparing GK prices to a local-volatility (Dupire) model — deviations above 15 pips on barriers trigger a manual review.",
+  "severity": "medium",
+  "service": "quant-pricing-engine",
+  "tags": ["AUD/USD", "Black-Scholes", "Garman-Kohlhagen", "options", "barrier", "vol-surface", "FX", "quant-model"],
+  "lastUpdated": "2026-04-21T09:00:00Z"
+}

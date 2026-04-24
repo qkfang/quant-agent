@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-monte-carlo-002",
+  "title": "AUD/USD Monte Carlo Simulation — 10,000 Path Stress Test",
+  "category": "Pricing & Simulation",
+  "content": "A 10,000-path Monte Carlo simulation was conducted for AUD/USD over a 90-day horizon using geometric Brownian motion with stochastic volatility (Heston model). Parameters: spot = 0.6485, domestic risk-free rate (AUD OIS) = 4.10%, foreign risk-free rate (USD OIS) = 4.85%, long-run variance θ = 0.0112, mean reversion speed κ = 2.5, vol-of-vol σ_v = 0.38, correlation ρ = -0.32. Scenario results — 5th percentile: 0.6105 (−5.9%), median: 0.6460 (−0.4%), 95th percentile: 0.6870 (+5.9%). VaR(99) on a notional USD 50M position is AUD 4.12M. The simulation highlights tail risk under a correlated commodity sell-off scenario where iron-ore prices drop 18% simultaneously. Greeks sensitivity: delta = 0.52, gamma = 0.014, vega = 0.083 per vol point. The Heston model captures the volatility smile observed in 1M and 3M AUD/USD options better than a flat Black-Scholes specification. Antithetic variates and Sobol quasi-random sequences were used to reduce Monte Carlo standard error to 0.0008.",
+  "severity": "high",
+  "service": "quant-pricing-engine",
+  "tags": ["AUD/USD", "Monte Carlo", "Heston", "VaR", "stress-test", "FX", "quant-model"],
+  "lastUpdated": "2026-04-18T14:15:00Z"
+}

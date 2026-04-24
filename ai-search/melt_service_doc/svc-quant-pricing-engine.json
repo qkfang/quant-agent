@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-pricing-engine-002",
+  "serviceName": "Quant Pricing Engine",
+  "serviceType": "pricing",
+  "description": "Multi-model FX derivatives pricing engine supporting Black-Scholes/Garman-Kohlhagen, Heston stochastic volatility, local volatility (Dupire), SABR, and Monte Carlo simulation. Prices vanilla options, barriers, digitals, accumulators, and TARFs for all G10 pairs. Calibrates to live vol surfaces from the market data service every 30 seconds. For AUD/USD, the engine includes a commodity-correlation adjustment module that accounts for the AUD's sensitivity to iron-ore and base metals prices. Supports both real-time streaming prices via gRPC and batch pricing via REST API.",
+  "endpoints": "POST /api/v2/pricing/option — price a single FX option\nPOST /api/v2/pricing/batch — batch price multiple instruments\nPOST /api/v2/pricing/monte-carlo — run Monte Carlo simulation\nGET /api/v2/pricing/calibration/{ccyPair} — get current model calibration state\nPOST /api/v2/pricing/barrier — price barrier and exotic options",
+  "dependencies": ["quant-market-data-service", "quant-vol-surface-service", "azure-service-bus", "azure-redis-cache"],
+  "owner": "fx-quant-desk",
+  "tags": ["pricing", "Black-Scholes", "Heston", "Monte Carlo", "options", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-21T09:30:00Z"
+}

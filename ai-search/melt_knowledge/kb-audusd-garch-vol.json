@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-garch-vol-001",
+  "title": "AUD/USD GARCH(1,1) Volatility Forecast — Q2 2026 Scenario",
+  "category": "Volatility Modelling",
+  "content": "The quant desk ran a GARCH(1,1) model on daily AUD/USD log-returns from Jan 2024 to Mar 2026. Key findings: annualised conditional volatility currently sits at 11.2%, up from the 9.8% long-run average. The persistence parameter (alpha + beta) is 0.987, indicating high volatility clustering. Scenario A (baseline): vol mean-reverts to 10.5% over 60 trading days with a half-life of 22 days. Scenario B (RBA rate-cut shock): an unexpected 50 bp cut lifts conditional vol to 14.8% within 5 days, with implied/realised spread widening to 3.2 vol points. Scenario C (risk-off): a global equity sell-off pushes AUD/USD realised vol to 16.5% and triggers stop-losses on carry-trade positions. Model diagnostics: Ljung-Box test on standardised residuals shows no remaining autocorrelation (p = 0.42). QQ-plot tails are slightly heavy, suggesting a Student-t innovation distribution (df ≈ 6.1) provides a better fit than Gaussian. The GARCH model is calibrated using maximum-likelihood estimation with the rugarch R package and cross-validated against an EGARCH(1,1) specification.",
+  "severity": "high",
+  "service": "quant-risk-engine",
+  "tags": ["AUD/USD", "GARCH", "volatility", "scenario-testing", "FX", "quant-model"],
+  "lastUpdated": "2026-04-20T08:30:00Z"
+}

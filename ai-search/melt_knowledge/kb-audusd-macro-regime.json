@@ -1,0 +1,10 @@
+{
+  "id": "kb-audusd-macro-regime-005",
+  "title": "AUD/USD Markov Regime-Switching Model — Macro Scenario Analysis",
+  "category": "Macro Strategy",
+  "content": "A two-state Markov regime-switching model (Hamilton 1989) was fitted to weekly AUD/USD returns with macro covariates: iron-ore price, AU-US 2Y rate differential, and VIX. Regime 1 (risk-on): mean weekly return = +0.12%, vol = 7.8% annualised, probability of staying = 0.94. Regime 2 (risk-off): mean weekly return = −0.38%, vol = 14.6% annualised, probability of staying = 0.88. Current smoothed probability places AUD/USD in Regime 1 with 72% confidence. Scenario A (continued risk-on): AUD/USD drifts toward 0.6650 over 3 months, supported by stable iron-ore above USD 105/t and a narrowing rate differential as the Fed eases. Scenario B (regime transition): a VIX spike above 28 triggers a shift to Regime 2 with expected transition within 2 weeks — model-implied target 0.6180. Scenario C (commodity super-cycle): iron-ore rally to USD 140/t compresses risk-off probability below 10%, pushing AUD/USD toward 0.6900. The model is estimated via the EM algorithm with robust standard errors. Out-of-sample hit rate for regime classification: 74% (2022-2025). Key risk: the model assumes only two regimes; a potential 'stagflation' state is not captured and would require a three-state extension.",
+  "severity": "high",
+  "service": "quant-research-platform",
+  "tags": ["AUD/USD", "regime-switching", "Markov", "macro", "iron-ore", "VIX", "FX", "quant-model"],
+  "lastUpdated": "2026-04-22T11:30:00Z"
+}

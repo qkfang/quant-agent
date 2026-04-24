@@ -1,0 +1,11 @@
+{
+  "id": "svc-quant-research-platform-007",
+  "serviceName": "Quant Research Platform",
+  "serviceType": "research",
+  "description": "Collaborative research environment for FX quant analysts and strategists. Provides Jupyter notebook infrastructure, shared research libraries (Python, R, Julia), and a publication pipeline for research articles and trading patterns. Supports regime-switching models (Hamilton Markov), cointegration analysis (Johansen), and factor decomposition for FX returns. For AUD/USD, the platform maintains curated research including: macro regime analysis (risk-on/risk-off classification), commodity-FX factor models, RBA policy impact studies, and cross-asset correlation monitoring. Research outputs are automatically indexed into the AI search knowledge base for retrieval by the quant AI agent. Integrates with the Quant ML Platform for seamless model promotion from research to production.",
+  "endpoints": "GET /api/v2/research/articles — list published research articles\nGET /api/v2/research/articles/{articleId} — retrieve specific article\nGET /api/v2/research/patterns — list identified trading patterns\nPOST /api/v2/research/notebook/execute — execute a research notebook\nGET /api/v2/research/drafts — list in-progress research drafts",
+  "dependencies": ["quant-market-data-service", "quant-ml-platform", "jupyterhub-service", "azure-blob-storage", "azure-ai-search"],
+  "owner": "quant-research-team",
+  "tags": ["research", "regime-switching", "Markov", "cointegration", "Jupyter", "FX", "AUD/USD", "quant-platform"],
+  "lastUpdated": "2026-04-22T15:20:00Z"
+}
