@@ -1,5 +1,5 @@
 
-az group create --name 'rg-melt' --location 'eastus2'
+az group create --name 'rg-quant' --location 'eastus2'
 
-az deployment group create --name 'melt-dev' --resource-group 'rg-melt' --template-file './main.bicep' --parameters './parameters.dev.json'
+az deployment group create --name 'quant-dev' --resource-group 'rg-quant' --template-file './main.bicep'
 

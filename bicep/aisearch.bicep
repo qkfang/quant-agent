@@ -7,7 +7,7 @@ param partitionCount int = 1
 
 resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' = {
   name: name
-  location: 'australiaeast'
+  location: location
   tags: tags
   identity: {
     type: 'SystemAssigned'
