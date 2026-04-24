@@ -3,12 +3,12 @@ using Azure.AI.Projects.Agents;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 
-namespace MeltAgent.Agents;
+namespace QuantAgent.Agents;
 
-public class MeltAgentInsight : BaseAgent
+public class QuantAgentInsight : BaseAgent
 {
-    public MeltAgentInsight(AIProjectClient aiProjectClient, string deploymentName, IList<ResponseTool>? tools = null, Action<DeclarativeAgentDefinition>? configureAgent = null, ILogger? logger = null)
-        : base(aiProjectClient, "melt-insight", deploymentName,
+    public QuantAgentInsight(AIProjectClient aiProjectClient, string deploymentName, IList<ResponseTool>? tools = null, Action<DeclarativeAgentDefinition>? configureAgent = null, ILogger? logger = null)
+        : base(aiProjectClient, "quant-insight", deploymentName,
             GetInstructions(),
             tools, configureAgent, logger)
     {

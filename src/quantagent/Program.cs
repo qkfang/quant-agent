@@ -2,7 +2,7 @@ using Azure.AI.Projects;
 using Azure.AI.Projects.Agents;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
-using MeltAgent.Agents;
+using QuantAgent.Agents;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,7 +70,7 @@ else
     logger.LogWarning("FABRIC_CONNECTION_NAME is not set. FxAgInsight will run without Fabric data agent.");
 }
 
-var insightAgent = new MeltAgentInsight(aiProjectClient, deploymentName, [], insightFabricConfig, loggerFactory.CreateLogger<MeltAgentInsight>());
+var insightAgent = new QuantAgentInsight(aiProjectClient, deploymentName, [], insightFabricConfig, loggerFactory.CreateLogger<QuantAgentInsight>());
 
 app.MapPost("/insight", async (ChatRequest request) =>
 {
