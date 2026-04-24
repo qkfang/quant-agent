@@ -57,51 +57,6 @@ resource gpt5oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
   }
 }
 
-resource fabricConnection 'Microsoft.CognitiveServices/accounts/connections@2025-10-01-preview' = {
-  parent: aiHub
-  name: 'fabric-data-agent'
-  properties: {
-    authType: 'CustomKeys'
-    category: 'CustomKeys'
-    target: '-'
-    useWorkspaceManagedIdentity: false
-    isSharedToAll: true
-    credentials: {
-      keys: {
-        'workspace-id': fabricWorkspaceId
-        'artifact-id': fabricArtifactId
-      }
-    }
-    metadata: {
-      type: 'fabric_dataagent_preview'
-    }
-  }
-}
-
-resource fabricProjectConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-10-01-preview' = {
-  parent: aiProject
-  name: 'fabric-data-agent-project'
-  properties: {
-    authType: 'CustomKeys'
-    category: 'CustomKeys'
-    target: '-'
-    useWorkspaceManagedIdentity: false
-    isSharedToAll: false
-    sharedUserList: []
-    peRequirement: 'NotRequired'
-    peStatus: 'NotApplicable'
-    credentials: {
-      keys: {
-        'workspace-id': fabricWorkspaceId
-        'artifact-id': fabricArtifactId
-      }
-    }
-    metadata: {
-      type: 'fabric_dataagent_preview'
-    }
-  }
-}
-
 resource aiSearchConnection 'Microsoft.CognitiveServices/accounts/connections@2025-10-01-preview' = if (aiSearchEndpoint != '') {
   parent: aiHub
   name: 'ai-search-connection'
@@ -137,5 +92,4 @@ output deploymentName string = gpt5oDeployment.name
 output projectName string = aiProject.name
 output location string = location
 output principalId string = aiHub.identity.principalId
-output fabricConnectionName string = fabricConnection.name
 output aiSearchConnectionName string = aiSearchEndpoint != '' ? aiSearchConnection.name : ''
