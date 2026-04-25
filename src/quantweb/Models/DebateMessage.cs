@@ -10,21 +10,19 @@ public class DebateMessage
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string CssClass => AgentName switch
     {
-        "Bull Analyst" => "agent-bull",
-        "Bear Analyst" => "agent-bear",
-        "Risk Analyst" => "agent-risk",
-        "Macro Strategist" => "agent-macro",
-        "Moderator" => "agent-moderator",
+        "Pricing Quant" => "agent-pricing",
+        "Risk Quant" => "agent-risk",
+        "Alpha Quant" => "agent-alpha",
+        "Orchestrator" => "agent-orchestrator",
         _ => "agent-default"
     };
 
     public string AvatarEmoji => AgentName switch
     {
-        "Bull Analyst" => "🐂",
-        "Bear Analyst" => "🐻",
-        "Risk Analyst" => "🛡️",
-        "Macro Strategist" => "🌍",
-        "Moderator" => "⚖️",
+        "Pricing Quant" => "💰",
+        "Risk Quant" => "🛡️",
+        "Alpha Quant" => "📈",
+        "Orchestrator" => "🎯",
         _ => "🤖"
     };
 }

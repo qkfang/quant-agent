@@ -10,7 +10,7 @@ builder.Services.AddRazorComponents()
 // Register multi-model debate service
 builder.Services.AddHttpClient<IMultiModelDebateService, MultiModelDebateService>(client =>
 {
-    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5800";
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromMinutes(10);
 });
@@ -18,7 +18,7 @@ builder.Services.AddHttpClient<IMultiModelDebateService, MultiModelDebateService
 // Register research service with HttpClient pointing to quantapi
 builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
 {
-    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5800";
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromMinutes(10);
 });

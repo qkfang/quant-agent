@@ -60,7 +60,7 @@ public class MultiModelDebateService : IMultiModelDebateService
                 _logger.LogWarning(ex, "Failed to parse SSE event: {Data}", data);
             }
 
-            if (evt is not null)
+            if (evt is not null && !string.IsNullOrEmpty(evt.Message))
             {
                 yield return new DebateMessage
                 {

@@ -74,7 +74,11 @@ app.MapPost("/debate", async (DebateRequest request) =>
 // ──────────────────────────────────────────────────────────
 // Research SSE streaming endpoint
 // ──────────────────────────────────────────────────────────
-var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+};
 
 app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext) =>
 {
