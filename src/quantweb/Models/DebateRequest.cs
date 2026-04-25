@@ -1,4 +1,4 @@
-namespace quantagent_web.Models;
+namespace quantweb.Models;
 
 /// <summary>
 /// Request to initiate a multi-model debate session.

@@ -1,4 +1,4 @@
-namespace quantagent_web.Models;
+namespace quantweb.Models;
 
 public class ResearchEvent
 {

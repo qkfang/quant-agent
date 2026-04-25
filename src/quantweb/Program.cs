@@ -1,5 +1,5 @@
-using quantagent_web.Components;
-using quantagent_web.Services;
+using quantweb.Components;
+using quantweb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

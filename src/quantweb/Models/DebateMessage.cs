@@ -1,4 +1,4 @@
-namespace quantagent_web.Models;
+namespace quantweb.Models;
 
 /// <summary>
 /// Represents a single message in a multi-model debate.

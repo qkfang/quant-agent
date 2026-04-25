@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using quantagent_web.Models;
+using quantweb.Models;
 
-namespace quantagent_web.Services;
+namespace quantweb.Services;
 
 public interface IResearchService
 {

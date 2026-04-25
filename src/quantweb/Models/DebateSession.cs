@@ -1,4 +1,4 @@
-namespace quantagent_web.Models;
+namespace quantweb.Models;
 
 /// <summary>
 /// Represents a complete multi-model debate session.

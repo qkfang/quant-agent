@@ -1,6 +1,6 @@
-using quantagent_web.Models;
+using quantweb.Models;
 
-namespace quantagent_web.Services;
+namespace quantweb.Services;
 
 /// <summary>
 /// Service interface for orchestrating multi-model debates where different
