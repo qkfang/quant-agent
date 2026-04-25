@@ -150,7 +150,7 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
     {
         ("gpt-4o", app.Configuration["AZURE_AI_COMPARE_GPT4O_DEPLOYMENT"] ?? "gpt-4o"),
         ("gpt-4.1", app.Configuration["AZURE_AI_COMPARE_GPT41_DEPLOYMENT"] ?? "gpt-4.1"),
-        ("ggpt-5.4", app.Configuration["AZURE_AI_COMPARE_GPT54_DEPLOYMENT"] ?? "ggpt-5.4")
+        ("gpt-5.4", app.Configuration["AZURE_AI_COMPARE_GPT54_DEPLOYMENT"] ?? "gpt-5.4")
     };
 
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
