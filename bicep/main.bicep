@@ -37,6 +37,15 @@ module azureFoundry 'foundry.bicep' = {
   }
 }
 
+// ── Bing Search ──────────────────────────────────────────────────────────────
+module bingSearch 'bing.bicep' = {
+  name: 'bingSearchDeployment'
+  params: {
+    foundryAccountName: azureFoundry.outputs.accountName
+    bingSearchName: '${baseName}-bing'
+  }
+}
+
 // ── Web Apps ─────────────────────────────────────────────────────────────────
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${baseName}-asp'
