@@ -156,25 +156,22 @@ public class CompareOrchestrator
             Console.WriteLine();
 
             var roundInput = new CompareRoundInput(userInput, rounds);
-            var workflow = BuildRoundWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
-
-            var responses = new List<CompareResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
+            var channel = Channel.CreateUnbounded<CompareResponse>();
+            var tasks = _agents.Select(agent => Task.Run(async () =>
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is CompareResponse response)
-                {
-                    responses.Add(response);
-                }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                }
+                string prompt = CompareAgentExecutor.BuildPrompt(roundInput, agent.ModelName);
+                var result = await agent.RunAsync(prompt);
+                await channel.Writer.WriteAsync(new CompareResponse(agent.ModelName, agent.ModelName, result.Text, result.Citations));
+            })).ToArray();
+            _ = Task.WhenAll(tasks).ContinueWith(
+                t => channel.Writer.TryComplete(t.Exception?.InnerException),
+                TaskScheduler.Default);
+            var responses = new List<CompareResponse>();
+            await foreach (var response in channel.Reader.ReadAllAsync())
+            {
+                responses.Add(response);
             }
+            await Task.WhenAll(tasks);
 
             var colors = new[] { "\u001b[34m", "\u001b[35m", "\u001b[32m", "\u001b[36m" };
             for (int i = 0; i < responses.Count; i++)

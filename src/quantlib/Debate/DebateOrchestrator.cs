@@ -149,25 +149,23 @@ public class DebateOrchestrator
             Console.WriteLine();
 
             var roundInput = new DebateRoundInput(userInput, rounds);
-            var workflow = BuildRoundWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
-
-            var responses = new List<DebateResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
+            var channel = Channel.CreateUnbounded<DebateResponse>();
+            QuantAgent[] allAgents = [_pricingQuant, _riskQuant, _alphaQuant];
+            var tasks = allAgents.Select(agent => Task.Run(async () =>
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is DebateResponse response)
-                {
-                    responses.Add(response);
-                }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                }
+                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
+                var result = await agent.RunAsync(prompt);
+                await channel.Writer.WriteAsync(new DebateResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
+            })).ToArray();
+            _ = Task.WhenAll(tasks).ContinueWith(
+                t => channel.Writer.TryComplete(t.Exception?.InnerException),
+                TaskScheduler.Default);
+            var responses = new List<DebateResponse>();
+            await foreach (var response in channel.Reader.ReadAllAsync())
+            {
+                responses.Add(response);
             }
+            await Task.WhenAll(tasks);
 
             foreach (var response in responses)
             {
