@@ -4,6 +4,7 @@ param tags object = {}
 param appServicePlanId string
 param linuxFxVersion string = 'DOTNETCORE|10.0'
 param appCommandLine string = ''
+param appSettings object = {}
 
 resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: name
@@ -22,6 +23,10 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
       alwaysOn: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
+      appSettings: [for item in objectKeys(appSettings): {
+        name: item
+        value: appSettings[item]
+      }]
     }
   }
 }

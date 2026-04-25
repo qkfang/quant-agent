@@ -71,6 +71,9 @@ module webApp 'webapp.bicep' = {
     tags: commonTags
     appServicePlanId: appServicePlan.id
     appCommandLine: 'dotnet quantweb.dll'
+    appSettings: {
+      QUANTAPI_BASE_URL: 'https://${apiApp.outputs.defaultHostName}'
+    }
   }
 }
 
