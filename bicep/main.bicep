@@ -10,7 +10,7 @@ param principals array = []
 var commonTags = {
   project: 'quant-agent'
 }
-var foundryName = '${baseName}-foundry'
+var foundryName = '${baseName}-fndry'
 var aiSearchName = '${baseName}-search'
 var apiAppName = '${baseName}-api'
 var webAppName = '${baseName}-web'
