@@ -4,37 +4,37 @@ using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Quants;
 
-internal sealed class QuantRoundDispatchExecutor()
-    : Executor<QuantRoundInput, QuantRoundInput>("quant-round-dispatch")
+internal sealed class DebateRoundDispatchExecutor()
+    : Executor<DebateRoundInput, DebateRoundInput>("quant-round-dispatch")
 {
-    public override ValueTask<QuantRoundInput> HandleAsync(
-        QuantRoundInput message, IWorkflowContext context, CancellationToken cancellationToken = default)
+    public override ValueTask<DebateRoundInput> HandleAsync(
+        DebateRoundInput message, IWorkflowContext context, CancellationToken cancellationToken = default)
         => ValueTask.FromResult(message);
 }
 
-internal abstract class QuantAgentExecutorBase : Executor<QuantRoundInput, QuantResponse>
+internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, DebateResponse>
 {
     private readonly QuantAgent _agent;
     private readonly ILogger _logger;
 
-    protected QuantAgentExecutorBase(string id, QuantAgent agent, ILogger logger)
+    protected DebateAgentExecutorBase(string id, QuantAgent agent, ILogger logger)
         : base(id)
     {
         _agent = agent;
         _logger = logger;
     }
 
-    public override async ValueTask<QuantResponse> HandleAsync(
-        QuantRoundInput input, IWorkflowContext context, CancellationToken cancellationToken = default)
+    public override async ValueTask<DebateResponse> HandleAsync(
+        DebateRoundInput input, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         string prompt = BuildPrompt(input, _agent.Specialty);
         _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", _agent.Name, _agent.Specialty);
         string response = await _agent.RunAsync(prompt);
         _logger.LogInformation("Agent {Name} completed analysis.", _agent.Name);
-        return new QuantResponse(_agent.Name, _agent.Specialty, response);
+        return new DebateResponse(_agent.Name, _agent.Specialty, response);
     }
 
-    private static string BuildPrompt(QuantRoundInput input, string specialty)
+    private static string BuildPrompt(DebateRoundInput input, string specialty)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {input.UserInput}");
@@ -86,10 +86,10 @@ internal abstract class QuantAgentExecutorBase : Executor<QuantRoundInput, Quant
 }
 
 internal sealed class PricingQuantExecutor(PricingQuantAgent agent, ILogger logger)
-    : QuantAgentExecutorBase("pricing-quant-executor", agent, logger);
+    : DebateAgentExecutorBase("pricing-quant-executor", agent, logger);
 
 internal sealed class RiskQuantExecutor(RiskQuantAgent agent, ILogger logger)
-    : QuantAgentExecutorBase("risk-quant-executor", agent, logger);
+    : DebateAgentExecutorBase("risk-quant-executor", agent, logger);
 
 internal sealed class AlphaQuantExecutor(AlphaQuantAgent agent, ILogger logger)
-    : QuantAgentExecutorBase("alpha-quant-executor", agent, logger);
+    : DebateAgentExecutorBase("alpha-quant-executor", agent, logger);

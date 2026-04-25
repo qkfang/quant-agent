@@ -7,29 +7,29 @@ using QuantLib.Agents.Quants;
 
 namespace QuantLib.Agents.Turn;
 
-public class QuantTurnOrchestrator
+public class TurnOrchestrator
 {
     private const int MaxRounds = 10;
 
     private readonly PricingQuantAgent _pricingQuant;
     private readonly RiskQuantAgent _riskQuant;
     private readonly AlphaQuantAgent _alphaQuant;
-    private readonly QuantTurnOrchestratorAgent _orchestrator;
+    private readonly TurnOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
-    public QuantTurnOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null)
+    public TurnOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null)
     {
         _logger = logger;
 
         _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
         _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
         _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
-        _orchestrator = new QuantTurnOrchestratorAgent(aiProjectClient, deploymentName, logger);
+        _orchestrator = new TurnOrchestratorAgent(aiProjectClient, deploymentName, logger);
     }
 
     private Workflow BuildSequentialWorkflow()
     {
-        var dispatch = new QuantTurnDispatchExecutor();
+        var dispatch = new TurnDispatchExecutor();
         var alphaExec = new AlphaQuantTurnExecutor(_alphaQuant, _logger);
         var pricingExec = new PricingQuantTurnExecutor(_pricingQuant, _logger);
         var riskExec = new RiskQuantTurnExecutor(_riskQuant, _logger);
@@ -47,7 +47,7 @@ public class QuantTurnOrchestrator
         string userInput,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var rounds = new List<QuantTurnRound>();
+        var rounds = new List<TurnRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -69,14 +69,14 @@ public class QuantTurnOrchestrator
             yield return AgentEvent.Started(round, _pricingQuant.Name, _pricingQuant.Specialty, agentInputDesc);
             yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty, agentInputDesc);
 
-            var turnInput = new QuantTurnInput(userInput, rounds);
+            var turnInput = new TurnInput(userInput, rounds);
             var workflow = BuildSequentialWorkflow();
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, turnInput);
 
-            var responses = new List<QuantTurnResponse>();
+            var responses = new List<TurnResponse>();
             await foreach (var evt in run.WatchStreamAsync())
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantTurnState finalState)
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is TurnState finalState)
                 {
                     responses = finalState.CurrentResponses;
                     foreach (var resp in responses)
@@ -98,7 +98,7 @@ public class QuantTurnOrchestrator
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             var summary = await _orchestrator.RunAsync(orchestratorPrompt);
-            rounds.Add(new QuantTurnRound(round, responses, summary));
+            rounds.Add(new TurnRound(round, responses, summary));
 
             yield return AgentEvent.Summary(round, summary);
 
@@ -140,7 +140,7 @@ public class QuantTurnOrchestrator
         Console.WriteLine($"  User Request: {userInput}");
         Console.WriteLine(new string('═', 62));
 
-        var rounds = new List<QuantTurnRound>();
+        var rounds = new List<TurnRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -150,14 +150,14 @@ public class QuantTurnOrchestrator
             Console.WriteLine("  ⟶ Running agents sequentially: Alpha → Pricing → Risk...");
             Console.WriteLine();
 
-            var turnInput = new QuantTurnInput(userInput, rounds);
+            var turnInput = new TurnInput(userInput, rounds);
             var workflow = BuildSequentialWorkflow();
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, turnInput);
 
-            var responses = new List<QuantTurnResponse>();
+            var responses = new List<TurnResponse>();
             await foreach (var evt in run.WatchStreamAsync())
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantTurnState finalState)
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is TurnState finalState)
                 {
                     responses = finalState.CurrentResponses;
                 }
@@ -192,7 +192,7 @@ public class QuantTurnOrchestrator
 
             var summary = await _orchestrator.RunAsync(orchestratorPrompt);
 
-            rounds.Add(new QuantTurnRound(round, responses, summary));
+            rounds.Add(new TurnRound(round, responses, summary));
 
             Console.WriteLine($"  \u001b[33m┌─ [Orchestrator Summary - Turn {round}] ─┐\u001b[0m");
             Console.WriteLine($"  \u001b[33m{summary}\u001b[0m");
@@ -225,7 +225,7 @@ public class QuantTurnOrchestrator
         Console.WriteLine("  Workflow completed.");
     }
 
-    private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<QuantTurnRound> previousRounds, IReadOnlyList<QuantTurnResponse> currentResponses, int currentRound)
+    private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<TurnRound> previousRounds, IReadOnlyList<TurnResponse> currentResponses, int currentRound)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
@@ -269,7 +269,7 @@ public class QuantTurnOrchestrator
         return sb.ToString();
     }
 
-    private static string BuildFinalSummaryPrompt(string userInput, IReadOnlyList<QuantTurnRound> allRounds)
+    private static string BuildFinalSummaryPrompt(string userInput, IReadOnlyList<TurnRound> allRounds)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Turn;
 
-internal class QuantTurnOrchestratorAgent : BaseAgent
+internal class TurnOrchestratorAgent : BaseAgent
 {
     private const string AgentId = "quant-turn-orchestrator";
 
@@ -33,7 +33,7 @@ internal class QuantTurnOrchestratorAgent : BaseAgent
         Keep summaries concise and structured. Use clear section headers.
         """;
 
-    public QuantTurnOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
+    public TurnOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
         : base(aiProjectClient, AgentId, deploymentName, Instructions, null, null, logger)
     {
     }

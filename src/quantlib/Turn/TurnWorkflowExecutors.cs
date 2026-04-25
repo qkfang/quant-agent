@@ -4,35 +4,35 @@ using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Turn;
 
-internal sealed class QuantTurnDispatchExecutor()
-    : Executor<QuantTurnInput, QuantTurnState>("quant-turn-dispatch")
+internal sealed class TurnDispatchExecutor()
+    : Executor<TurnInput, TurnState>("quant-turn-dispatch")
 {
-    public override ValueTask<QuantTurnState> HandleAsync(
-        QuantTurnInput message, IWorkflowContext context, CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(new QuantTurnState(message.UserInput, message.PreviousRounds, []));
+    public override ValueTask<TurnState> HandleAsync(
+        TurnInput message, IWorkflowContext context, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(new TurnState(message.UserInput, message.PreviousRounds, []));
 }
 
-internal abstract class QuantTurnAgentExecutor : Executor<QuantTurnState, QuantTurnState>
+internal abstract class TurnAgentExecutor : Executor<TurnState, TurnState>
 {
     private readonly QuantAgent _agent;
     private readonly ILogger _logger;
 
-    protected QuantTurnAgentExecutor(string id, QuantAgent agent, ILogger logger)
+    protected TurnAgentExecutor(string id, QuantAgent agent, ILogger logger)
         : base(id)
     {
         _agent = agent;
         _logger = logger;
     }
 
-    public override async ValueTask<QuantTurnState> HandleAsync(
-        QuantTurnState input, IWorkflowContext context, CancellationToken cancellationToken = default)
+    public override async ValueTask<TurnState> HandleAsync(
+        TurnState input, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         string prompt = BuildPrompt(input, _agent.Name, _agent.Specialty);
         _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing sequentially...", _agent.Name, _agent.Specialty);
         string response = await _agent.RunAsync(prompt);
         _logger.LogInformation("Agent {Name} completed analysis.", _agent.Name);
 
-        var updatedResponses = new List<QuantTurnResponse>(input.CurrentResponses)
+        var updatedResponses = new List<TurnResponse>(input.CurrentResponses)
         {
             new(_agent.Name, _agent.Specialty, response)
         };
@@ -40,7 +40,7 @@ internal abstract class QuantTurnAgentExecutor : Executor<QuantTurnState, QuantT
         return input with { CurrentResponses = updatedResponses };
     }
 
-    private static string BuildPrompt(QuantTurnState state, string agentName, string specialty)
+    private static string BuildPrompt(TurnState state, string agentName, string specialty)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {state.UserInput}");
@@ -92,10 +92,10 @@ internal abstract class QuantTurnAgentExecutor : Executor<QuantTurnState, QuantT
 }
 
 internal sealed class AlphaQuantTurnExecutor(AlphaQuantAgent agent, ILogger logger)
-    : QuantTurnAgentExecutor("alpha-quant-turn-executor", agent, logger);
+    : TurnAgentExecutor("alpha-quant-turn-executor", agent, logger);
 
 internal sealed class PricingQuantTurnExecutor(PricingQuantAgent agent, ILogger logger)
-    : QuantTurnAgentExecutor("pricing-quant-turn-executor", agent, logger);
+    : TurnAgentExecutor("pricing-quant-turn-executor", agent, logger);
 
 internal sealed class RiskQuantTurnExecutor(RiskQuantAgent agent, ILogger logger)
-    : QuantTurnAgentExecutor("risk-quant-turn-executor", agent, logger);
+    : TurnAgentExecutor("risk-quant-turn-executor", agent, logger);

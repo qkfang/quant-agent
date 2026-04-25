@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Quants;
 
-internal class QuantOrchestratorAgent : BaseAgent
+internal class DebateOrchestratorAgent : BaseAgent
 {
     private const string AgentId = "quant-orchestrator";
 
@@ -42,7 +42,7 @@ internal class QuantOrchestratorAgent : BaseAgent
         Keep summaries concise and structured. Use clear section headers.
         """;
 
-    public QuantOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
+    public DebateOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
         : base(aiProjectClient, AgentId, deploymentName, Instructions, null, null, logger)
     {
     }

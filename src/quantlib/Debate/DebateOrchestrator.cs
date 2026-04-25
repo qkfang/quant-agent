@@ -6,29 +6,29 @@ using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Quants;
 
-public class QuantOrchestrator
+public class DebateOrchestrator
 {
     private const int MaxRounds = 5;
 
     private readonly PricingQuantAgent _pricingQuant;
     private readonly RiskQuantAgent _riskQuant;
     private readonly AlphaQuantAgent _alphaQuant;
-    private readonly QuantOrchestratorAgent _orchestrator;
+    private readonly DebateOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
-    public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null)
+    public DebateOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null)
     {
         _logger = logger;
 
         _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
         _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
         _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
-        _orchestrator = new QuantOrchestratorAgent(aiProjectClient, deploymentName, logger);
+        _orchestrator = new DebateOrchestratorAgent(aiProjectClient, deploymentName, logger);
     }
 
     private Workflow BuildRoundWorkflow()
     {
-        var dispatchExecutor = new QuantRoundDispatchExecutor();
+        var dispatchExecutor = new DebateRoundDispatchExecutor();
         var pricingExec = new PricingQuantExecutor(_pricingQuant, _logger);
         var riskExec = new RiskQuantExecutor(_riskQuant, _logger);
         var alphaExec = new AlphaQuantExecutor(_alphaQuant, _logger);
@@ -44,7 +44,7 @@ public class QuantOrchestrator
         string userInput,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var rounds = new List<QuantRound>();
+        var rounds = new List<DebateRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -68,14 +68,14 @@ public class QuantOrchestrator
             yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty, agentInputDesc);
             yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty, agentInputDesc);
 
-            var roundInput = new QuantRoundInput(userInput, rounds);
+            var roundInput = new DebateRoundInput(userInput, rounds);
             var workflow = BuildRoundWorkflow();
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
 
-            var responses = new List<QuantResponse>();
+            var responses = new List<DebateResponse>();
             await foreach (var evt in run.WatchStreamAsync())
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantResponse response)
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is DebateResponse response)
                 {
                     responses.Add(response);
                     yield return AgentEvent.Completed(round, response.AgentName, response.Specialty, response.Message);
@@ -94,7 +94,7 @@ public class QuantOrchestrator
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             var summary = await _orchestrator.RunAsync(orchestratorPrompt);
-            rounds.Add(new QuantRound(round, responses, summary));
+            rounds.Add(new DebateRound(round, responses, summary));
 
             yield return AgentEvent.Summary(round, summary);
 
@@ -136,7 +136,7 @@ public class QuantOrchestrator
         Console.WriteLine($"  User Request: {userInput}");
         Console.WriteLine(new string('═', 62));
 
-        var rounds = new List<QuantRound>();
+        var rounds = new List<DebateRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -146,14 +146,14 @@ public class QuantOrchestrator
             Console.WriteLine("  ⟶ Dispatching to all quant agents concurrently...");
             Console.WriteLine();
 
-            var roundInput = new QuantRoundInput(userInput, rounds);
+            var roundInput = new DebateRoundInput(userInput, rounds);
             var workflow = BuildRoundWorkflow();
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
 
-            var responses = new List<QuantResponse>();
+            var responses = new List<DebateResponse>();
             await foreach (var evt in run.WatchStreamAsync())
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantResponse response)
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is DebateResponse response)
                 {
                     responses.Add(response);
                 }
@@ -188,7 +188,7 @@ public class QuantOrchestrator
 
             var summary = await _orchestrator.RunAsync(orchestratorPrompt);
 
-            rounds.Add(new QuantRound(round, responses, summary));
+            rounds.Add(new DebateRound(round, responses, summary));
 
             Console.WriteLine($"  \u001b[33m┌─ [Orchestrator Summary - Round {round}] ─┐\u001b[0m");
             Console.WriteLine($"  \u001b[33m{summary}\u001b[0m");
@@ -221,7 +221,7 @@ public class QuantOrchestrator
         Console.WriteLine("  Workflow completed.");
     }
 
-    private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<QuantRound> previousRounds, IReadOnlyList<QuantResponse> currentResponses, int currentRound)
+    private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<DebateRound> previousRounds, IReadOnlyList<DebateResponse> currentResponses, int currentRound)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
@@ -282,7 +282,7 @@ public class QuantOrchestrator
         return sb.ToString();
     }
 
-    private static string BuildFinalSummaryPrompt(string userInput, IReadOnlyList<QuantRound> allRounds)
+    private static string BuildFinalSummaryPrompt(string userInput, IReadOnlyList<DebateRound> allRounds)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
