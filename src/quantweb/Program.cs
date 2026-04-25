@@ -15,21 +15,13 @@ builder.Services.AddHttpClient<IMultiModelDebateService, MultiModelDebateService
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 
-// Register research service - use mock when configured or when no API URL is set
-var useMock = builder.Configuration.GetValue<bool>("UseMockResearch", false);
-if (useMock)
+// Register research service
+builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
 {
-    builder.Services.AddSingleton<IResearchService, MockResearchService>();
-}
-else
-{
-    builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
-    {
-        var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
-        client.BaseAddress = new Uri(apiBaseUrl);
-        client.Timeout = TimeSpan.FromMinutes(10);
-    });
-}
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
 
 var app = builder.Build();
 
