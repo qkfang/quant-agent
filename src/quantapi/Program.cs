@@ -159,13 +159,15 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
 
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
+    var bingConnectionId = app.Configuration["AZURE_BING_CONNECTION_ID"];
     var orchestrator = new CompareOrchestrator(
         apiProjectClient,
         models,
         apiDeploymentName,
         loggerFactory.CreateLogger<CompareOrchestrator>(),
         searchConnectionId,
-        searchIndexName);
+        searchIndexName,
+        bingConnectionId);
 
     await foreach (var compareEvent in orchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
     {

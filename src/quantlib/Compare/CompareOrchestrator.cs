@@ -20,7 +20,8 @@ public class CompareOrchestrator
         string orchestratorDeploymentName,
         ILogger logger,
         string? searchConnectionId = null,
-        string? searchIndexName = null)
+        string? searchIndexName = null,
+        string? bingConnectionId = null)
     {
         _logger = logger;
         _agents = new List<CompareAgent>();
@@ -28,7 +29,7 @@ public class CompareOrchestrator
         foreach (var (modelName, deploymentName) in models)
         {
             var agentId = $"compare-{modelName.Replace(".", "-").Replace(" ", "-").ToLowerInvariant()}";
-            _agents.Add(new CompareAgent(aiProjectClient, agentId, modelName, deploymentName, searchConnectionId, searchIndexName, logger));
+            _agents.Add(new CompareAgent(aiProjectClient, agentId, modelName, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, logger));
         }
 
         _orchestrator = new CompareOrchestratorAgent(aiProjectClient, orchestratorDeploymentName, logger);

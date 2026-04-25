@@ -30,6 +30,7 @@ public class CompareAgent : BaseAgent
         string deploymentName,
         string? searchConnectionId = null,
         string? searchIndexName = null,
+        string? bingConnectionId = null,
         ILogger? logger = null)
         : base(aiProjectClient, agentId, deploymentName, Instructions, null,
             agentDef =>
@@ -37,6 +38,10 @@ public class CompareAgent : BaseAgent
                 if (!string.IsNullOrWhiteSpace(searchConnectionId) && !string.IsNullOrWhiteSpace(searchIndexName))
                     agentDef.Tools.Add(new AzureAISearchTool(new AzureAISearchToolOptions([
                         new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName }
+                    ])));
+                if (!string.IsNullOrWhiteSpace(bingConnectionId))
+                    agentDef.Tools.Add(new BingGroundingTool(new BingGroundingSearchToolOptions([
+                        new BingGroundingSearchConfiguration(bingConnectionId)
                     ])));
             },
             logger)

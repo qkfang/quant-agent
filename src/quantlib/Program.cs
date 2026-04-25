@@ -76,7 +76,10 @@ if (args.Length > 0 && args[0] == "--compare")
         aiProjectClient,
         models,
         deploymentName,
-        loggerFactory.CreateLogger<CompareOrchestrator>());
+        loggerFactory.CreateLogger<CompareOrchestrator>(),
+        config["AZURE_AI_SEARCH_CONNECTION_ID"],
+        config["AZURE_AI_SEARCH_INDEX_NAME"],
+        config["AZURE_BING_CONNECTION_ID"]);
     await orchestrator.RunConsoleAsync(request);
     return;
 }
