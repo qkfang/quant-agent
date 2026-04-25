@@ -12,7 +12,8 @@ var commonTags = {
 }
 var foundryName = '${baseName}-fndry'
 var aiSearchName = '${baseName}-search'
-var webAppName = '${baseName}-webapp'
+var apiAppName = '${baseName}-api'
+var webAppName = '${baseName}-web'
 
 // ── AI Search ────────────────────────────────────────────────────────────────
 module aiSearch 'aisearch.bicep' = {
@@ -36,13 +37,24 @@ module azureFoundry 'foundry.bicep' = {
   }
 }
 
-// ── Web App ──────────────────────────────────────────────────────────────────
+// ── Web Apps ─────────────────────────────────────────────────────────────────
+module apiApp 'webapp.bicep' = {
+  name: 'apiAppDeployment'
+  params: {
+    name: apiAppName
+    location: location
+    tags: commonTags
+    appCommandLine: 'dotnet quantapi.dll'
+  }
+}
+
 module webApp 'webapp.bicep' = {
   name: 'webAppDeployment'
   params: {
     name: webAppName
     location: location
     tags: commonTags
+    appCommandLine: 'dotnet quantagent-web.dll'
   }
 }
 
@@ -75,7 +87,7 @@ resource foundrySearchServiceContributor 'Microsoft.Authorization/roleAssignment
   }
 }
 
-// ── Role assignments: Web App → Foundry ──────────────────────────────────────
+// ── Role assignments: API App → Foundry ──────────────────────────────────────
 var cognitiveServicesOpenAIUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 var cognitiveServicesUserRoleId = 'a97b65f3-24c7-4388-baec-2e87135dc908'
 
@@ -84,6 +96,27 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-10-01-preview
   dependsOn: [azureFoundry]
 }
 
+resource apiAppOpenAIUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, apiAppName, cognitiveServicesOpenAIUserRoleId)
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAIUserRoleId)
+    principalId: apiApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource apiAppCogServicesUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, apiAppName, cognitiveServicesUserRoleId)
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesUserRoleId)
+    principalId: apiApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ── Role assignments: Web App → Foundry ──────────────────────────────────────
 resource webAppOpenAIUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(foundryAccount.id, webAppName, cognitiveServicesOpenAIUserRoleId)
   scope: foundryAccount
@@ -104,9 +137,20 @@ resource webAppCogServicesUserRole 'Microsoft.Authorization/roleAssignments@2022
   }
 }
 
-// ── Role assignments: Web App → AI Search ────────────────────────────────────
+// ── Role assignments: API App → AI Search ────────────────────────────────────
 var searchIndexDataContributorRoleId = '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
 
+resource apiAppSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(searchResource.id, apiAppName, searchIndexDataContributorRoleId)
+  scope: searchResource
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', searchIndexDataContributorRoleId)
+    principalId: apiApp.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ── Role assignments: Web App → AI Search ────────────────────────────────────
 resource webAppSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(searchResource.id, webAppName, searchIndexDataContributorRoleId)
   scope: searchResource
@@ -142,4 +186,5 @@ resource userSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments
 output foundryEndpoint string = azureFoundry.outputs.endpoint
 output foundryDeploymentName string = azureFoundry.outputs.deploymentName
 output aiSearchEndpoint string = aiSearch.outputs.endpoint
+output apiAppDefaultHostName string = apiApp.outputs.defaultHostName
 output webAppDefaultHostName string = webApp.outputs.defaultHostName
