@@ -2,7 +2,7 @@
 param baseName string = 'quant'
 
 @description('Azure region for all resources')
-param location string = 'eastus2'
+param location string = 'australiaeast'
 
 @description('Principal object IDs to grant access to deployed resources')
 param principals array = []
