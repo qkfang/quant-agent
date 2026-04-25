@@ -7,20 +7,9 @@
     <RootNamespace>quantagent_web</RootNamespace>
     <AssemblyName>$(AssemblyName.Replace(' ', '_'))</AssemblyName>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <NoWarn>$(NoWarn);SKEXP0001;SKEXP0010;SKEXP0020;SKEXP0040;SKEXP0050;SKEXP0060;SKEXP0070;SKEXP0101;SKEXP0110;OPENAI001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="PromptTemplates\*.yaml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.13.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.71.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.71.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.71.0" />
   </ItemGroup>
 
 </Project>
