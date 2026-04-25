@@ -15,13 +15,21 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var endpoint = config["AZURE_AI_PROJECT_ENDPOINT"]
-    ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
-var deploymentName = config["AZURE_AI_MODEL_DEPLOYMENT_NAME"]
-    ?? throw new InvalidOperationException("AZURE_AI_MODEL_DEPLOYMENT_NAME is not set.");
+var endpoint = config["AZURE_AI_PROJECT_ENDPOINT"];
+if (string.IsNullOrWhiteSpace(endpoint))
+    throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
+
+var deploymentName = config["AZURE_AI_MODEL_DEPLOYMENT_NAME"];
+if (string.IsNullOrWhiteSpace(deploymentName))
+    throw new InvalidOperationException("AZURE_AI_MODEL_DEPLOYMENT_NAME is not set.");
 var tenantId = config["AZURE_TENANT_ID"];
 
-var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { TenantId = tenantId });
+var credentialOptions = new DefaultAzureCredentialOptions();
+if (!string.IsNullOrWhiteSpace(tenantId))
+{
+    credentialOptions.TenantId = tenantId;
+}
+var credential = new DefaultAzureCredential(credentialOptions);
 AIProjectClient aiProjectClient = new(new Uri(endpoint), credential);
 
 using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
@@ -37,18 +45,5 @@ if (args.Length > 0 && args[0] == "--debate")
     return;
 }
 
-if (args.Length > 0 && args[0] == "--insight")
-{
-    var question = args.Length > 1
-        ? string.Join(" ", args.Skip(1))
-        : "What is the current market outlook for AUDUSD?";
-
-    var agent = new QuantAgentInsight(aiProjectClient, deploymentName, [], null, loggerFactory.CreateLogger<QuantAgentInsight>());
-    var response = await agent.RunAsync(question);
-    Console.WriteLine(response);
-    return;
-}
-
 Console.WriteLine("Usage:");
 Console.WriteLine("  dotnet run -- --debate \"your topic\"");
-Console.WriteLine("  dotnet run -- --insight \"your question\"");
