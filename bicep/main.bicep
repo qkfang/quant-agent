@@ -45,7 +45,7 @@ module azureFoundry 'foundry.bicep' = {
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
     appInsightsResourceId: monitoring.outputs.appInsightsId
     appInsightsInstrumentationKey: monitoring.outputs.appInsightsInstrumentationKey
-    bingResourceId: bingSearch.outputs.resourceId
+    bingResourceId: bingSearch.outputs.externalId
     bingApiKey: bingSearch.outputs.apiKey
   }
 }
@@ -91,8 +91,7 @@ module apiApp 'webapp.bicep' = {
       AZURE_TENANT_ID: tenant().tenantId
       AZURE_AI_SEARCH_CONNECTION_ID: azureFoundry.outputs.aiSearchProjectConnectionName
       AZURE_AI_SEARCH_INDEX_NAME: 'quant_knowledge'
-      AZURE_BING_CONNECTION_ID: bingSearch.outputs.resourceId
-      AZURE_BING_INSTANCE_NAME: '${baseName}-bing'
+      AZURE_BING_CONNECTION_ID: bingSearch.outputs.externalId
     }
   }
 }

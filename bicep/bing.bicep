@@ -11,4 +11,5 @@ resource bingSearch 'Microsoft.Bing/accounts@2020-06-10' = {
 }
 
 output resourceId string = bingSearch.id
+output externalId string = bingSearch.id
 output apiKey string = listKeys(bingSearch.id, '2020-06-10').key1

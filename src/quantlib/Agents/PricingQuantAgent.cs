@@ -44,8 +44,8 @@ public class PricingQuantAgent : QuantAgent
         Keep responses focused and under 800 words.
         """;
 
-    public PricingQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, string? bingInstanceName = null, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Pricing Quant", "Pricing Models & Derivatives", "\u001b[34m", deploymentName, Instructions, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger)
+    public PricingQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Pricing Quant", "Pricing Models & Derivatives", "\u001b[34m", deploymentName, Instructions, searchConnectionId, searchIndexName, bingConnectionId, logger)
     {
     }
 }

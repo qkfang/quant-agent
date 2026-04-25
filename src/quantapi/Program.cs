@@ -82,15 +82,13 @@ async Task HandleDebate(DebateRequest request, HttpContext httpContext)
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
     var bingConnectionId = app.Configuration["AZURE_BING_CONNECTION_ID"];
-    var bingInstanceName = app.Configuration["AZURE_BING_INSTANCE_NAME"];
     var orchestrator = new DebateOrchestrator(
         apiProjectClient,
         apiDeploymentName,
         loggerFactory.CreateLogger<DebateOrchestrator>(),
         searchConnectionId,
         searchIndexName,
-        bingConnectionId,
-        bingInstanceName);
+        bingConnectionId);
 
     await foreach (var agentEvent in orchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
     {
@@ -121,15 +119,13 @@ app.MapPost("/turn", async (TurnRequest request, HttpContext httpContext) =>
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
     var bingConnectionId = app.Configuration["AZURE_BING_CONNECTION_ID"];
-    var bingInstanceName = app.Configuration["AZURE_BING_INSTANCE_NAME"];
     var turnOrchestrator = new TurnOrchestrator(
         apiProjectClient,
         apiDeploymentName,
         loggerFactory.CreateLogger<TurnOrchestrator>(),
         searchConnectionId,
         searchIndexName,
-        bingConnectionId,
-        bingInstanceName);
+        bingConnectionId);
 
     await foreach (var agentEvent in turnOrchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
     {
@@ -196,13 +192,12 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
     var bingConnectionId = app.Configuration["AZURE_BING_CONNECTION_ID"];
-    var bingInstanceName = app.Configuration["AZURE_BING_INSTANCE_NAME"];
 
     QuantAgent agent = request.Agent.ToLowerInvariant() switch
     {
-        "alpha" => new AlphaQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, loggerFactory.CreateLogger<AlphaQuantAgent>()),
-        "pricing" => new PricingQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, loggerFactory.CreateLogger<PricingQuantAgent>()),
-        "risk" => new RiskQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, loggerFactory.CreateLogger<RiskQuantAgent>()),
+        "alpha" => new AlphaQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, loggerFactory.CreateLogger<AlphaQuantAgent>()),
+        "pricing" => new PricingQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, loggerFactory.CreateLogger<PricingQuantAgent>()),
+        "risk" => new RiskQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, bingConnectionId, loggerFactory.CreateLogger<RiskQuantAgent>()),
         _ => throw new ArgumentException($"Unknown agent: {request.Agent}")
     };
 

@@ -11,3 +11,5 @@
 - never include any business name or application name from customer
 - make sure remove any sensitive information in mock data
 
+
+https://learn.microsoft.com/en-us/dotnet/api/azure.ai.projects.agents.binggroundingsearchtooloptions?view=azure-dotnet

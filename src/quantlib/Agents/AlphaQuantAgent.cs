@@ -46,8 +46,8 @@ public class AlphaQuantAgent : QuantAgent
         Keep responses focused and under 800 words.
         """;
 
-    public AlphaQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, string? bingInstanceName = null, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Alpha Quant", "Alpha Signals & Trading Strategies", "\u001b[32m", deploymentName, Instructions, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger)
+    public AlphaQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Alpha Quant", "Alpha Signals & Trading Strategies", "\u001b[32m", deploymentName, Instructions, searchConnectionId, searchIndexName, bingConnectionId, logger)
     {
     }
 }

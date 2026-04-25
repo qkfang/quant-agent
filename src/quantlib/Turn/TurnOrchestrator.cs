@@ -14,15 +14,15 @@ public class TurnOrchestrator
     private readonly TurnOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
-    public TurnOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, string? bingInstanceName = null)
+    public TurnOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null)
     {
         _logger = logger;
 
         _agents =
         [
-            new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger),
-            new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger),
-            new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger)
+            new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, logger),
+            new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, logger),
+            new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, logger)
         ];
         _orchestrator = new TurnOrchestratorAgent(aiProjectClient, deploymentName, logger);
     }
