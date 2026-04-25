@@ -22,7 +22,6 @@ public class QuantAgentInsight : BaseAgent
         2. Use `get_all_research_patterns` to identify current trading patterns and technical signals
         3. Use `get_all_research_drafts` to check for any in-progress research that may be relevant
         4. Use customer and portfolio tools to provide personalized insights when a specific customer is mentioned
-        5. Use the Fabric data agent to query structured trading data and analytics when available
 
         Always ground your answers in the available research data. Cite specific articles or patterns when possible. Provide clear, actionable market insights.
         """;

@@ -92,25 +92,7 @@ AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
-// Configure Fabric data agent tool for FxAgInsight
-var fabricConnectionName = app.Configuration["FABRIC_CONNECTION_NAME"];
-Action<DeclarativeAgentDefinition>? insightFabricConfig = null;
-if (!string.IsNullOrEmpty(fabricConnectionName))
-{
-    var fabricConnection = apiProjectClient.Connections.GetConnection(fabricConnectionName);
-    var fabricToolOption = new FabricDataAgentToolOptions
-    {
-        ProjectConnections = { new ToolProjectConnection(projectConnectionId: fabricConnection.Id) }
-    };
-    insightFabricConfig = agentDef => agentDef.Tools.Add(new MicrosoftFabricPreviewTool(fabricToolOption));
-    logger.LogInformation("Fabric data agent tool configured for FxAgInsight with connection: {ConnectionName}", fabricConnectionName);
-}
-else
-{
-    logger.LogWarning("FABRIC_CONNECTION_NAME is not set. FxAgInsight will run without Fabric data agent.");
-}
-
-var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], insightFabricConfig, loggerFactory.CreateLogger<QuantAgentInsight>());
+var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], loggerFactory.CreateLogger<QuantAgentInsight>());
 
 app.MapPost("/insight", async (ChatRequest request) =>
 {
