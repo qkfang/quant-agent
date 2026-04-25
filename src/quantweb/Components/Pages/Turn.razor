@@ -727,6 +727,15 @@
                 };
                 break;
 
+            case "AgentDelta":
+                var deltaRound = GetOrCreateRound(evt.Round);
+                if (deltaRound.Agents.TryGetValue(evt.AgentName, out var deltaAgentState))
+                {
+                    deltaAgentState.IsWorking = false;
+                    deltaAgentState.OutputMessage = (deltaAgentState.OutputMessage ?? "") + evt.Message;
+                }
+                break;
+
             case "AgentCompleted":
                 var completeRound = GetOrCreateRound(evt.Round);
                 if (completeRound.Agents.TryGetValue(evt.AgentName, out var agentState))
@@ -750,6 +759,17 @@
                 var summaryRound = GetOrCreateRound(evt.Round);
                 summaryRound.OrchestratorSummary = evt.Message;
                 summaryRound.IsSummarizing = false;
+                break;
+
+            case "OrchestratorDelta":
+                var orchDeltaRound = GetOrCreateRound(evt.Round);
+                orchDeltaRound.IsSummarizing = false;
+                orchDeltaRound.OrchestratorSummary = (orchDeltaRound.OrchestratorSummary ?? "") + evt.Message;
+                break;
+
+            case "FinalReportDelta":
+                isFinalizing = false;
+                finalReport += evt.Message;
                 break;
 
             case "ConsensusReached":

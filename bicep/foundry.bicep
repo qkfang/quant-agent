@@ -3,6 +3,9 @@ param location string
 param tags object = {}
 param aiSearchEndpoint string = ''
 param aiSearchResourceId string = ''
+param appInsightsConnectionString string = ''
+param appInsightsResourceId string = ''
+param appInsightsInstrumentationKey string = ''
 
 resource aiHub 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
   name: name
@@ -117,6 +120,22 @@ resource aiSearchProjectConnection 'Microsoft.CognitiveServices/accounts/project
     metadata: {
       type: 'azure_ai_search'
       ResourceId: aiSearchResourceId
+    }
+  }
+}
+
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (appInsightsConnectionString != '') {
+  parent: aiProject
+  name: 'app-insights-connection'
+  properties: {
+    authType: 'ApiKey'
+    category: 'AppInsights'
+    target: appInsightsConnectionString
+    credentials: {
+      key: appInsightsInstrumentationKey
+    }
+    metadata: {
+      ResourceId: appInsightsResourceId
     }
   }
 }

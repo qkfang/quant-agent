@@ -58,16 +58,26 @@ public class TurnOrchestrator
 
                 _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", agent.Name, agent.Specialty);
                 string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
-                var result = await agent.RunAsync(agentPrompt);
+                var agentText = new StringBuilder();
+                await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken))
+                {
+                    agentText.Append(delta);
+                    yield return AgentEvent.Delta(round, agent.Name, agent.Specialty, delta);
+                }
                 _logger.LogInformation("Agent {Name} completed analysis.", agent.Name);
 
-                responses.Add(new TurnResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
-                yield return AgentEvent.Completed(round, agent.Name, agent.Specialty, result.Text, result.Citations);
+                responses.Add(new TurnResponse(agent.Name, agent.Specialty, agentText.ToString()));
+                yield return AgentEvent.Completed(round, agent.Name, agent.Specialty, agentText.ToString());
             }
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
-            var summary = summaryResult.Text;
+            var summaryText = new StringBuilder();
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            {
+                summaryText.Append(delta);
+                yield return AgentEvent.OrchestratorDeltaEvent(round, delta);
+            }
+            var summary = summaryText.ToString();
             rounds.Add(new TurnRound(round, responses, summary));
 
             yield return AgentEvent.Summary(round, summary);
@@ -86,8 +96,13 @@ public class TurnOrchestrator
 
         yield return AgentEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
-        yield return AgentEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
+        var finalText = new StringBuilder();
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        {
+            finalText.Append(delta);
+            yield return AgentEvent.FinalReportDeltaEvent(delta);
+        }
+        yield return AgentEvent.FinalCompleted(finalText.ToString());
     }
 
     public async Task RunConsoleAsync(string userInput)

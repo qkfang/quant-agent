@@ -34,6 +34,9 @@ module azureFoundry 'foundry.bicep' = {
     tags: commonTags
     aiSearchEndpoint: aiSearch.outputs.endpoint
     aiSearchResourceId: aiSearch.outputs.id
+    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+    appInsightsResourceId: monitoring.outputs.appInsightsId
+    appInsightsInstrumentationKey: monitoring.outputs.appInsightsInstrumentationKey
   }
 }
 
