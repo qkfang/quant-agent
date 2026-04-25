@@ -1,5 +1,5 @@
 using QuantLib.Agents;
-using QuantLib.Agents.Philosophers;
+using QuantLib.Agents.Turn;
 using QuantLib.Agents.Quants;
 using QuantLib.Agents.Compare;
 using Azure.AI.Projects;
@@ -62,17 +62,6 @@ AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
 // ──────────────────────────────────────────────────────────
-// Philosopher debate API endpoint
-// ──────────────────────────────────────────────────────────
-app.MapPost("/debate", async (DebateRequest request) =>
-{
-    logger.LogInformation("Debate request: {Topic}", request.Topic);
-    var debate = new PhilosopherDebate(apiProjectClient, apiDeploymentName, loggerFactory.CreateLogger<PhilosopherDebate>());
-    var turns = await debate.DebateAsync(request.Topic);
-    return Results.Ok(new DebateResponse(request.Topic, turns));
-});
-
-// ──────────────────────────────────────────────────────────
 // Research SSE streaming endpoint
 // ──────────────────────────────────────────────────────────
 var jsonOptions = new JsonSerializerOptions
@@ -100,6 +89,38 @@ app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext
         searchIndexName);
 
     await foreach (var agentEvent in orchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
+    {
+        var json = JsonSerializer.Serialize(agentEvent, jsonOptions);
+        await httpContext.Response.WriteAsync($"data: {json}\n\n", httpContext.RequestAborted);
+        await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+    }
+
+    await httpContext.Response.WriteAsync("data: [DONE]\n\n", httpContext.RequestAborted);
+    await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+});
+
+// ──────────────────────────────────────────────────────────
+// Quant turn-based sequential analysis endpoint
+// ──────────────────────────────────────────────────────────
+app.MapPost("/turn", async (TurnRequest request, HttpContext httpContext) =>
+{
+    var sanitizedTopic = request.Topic.ReplaceLineEndings(string.Empty);
+    logger.LogInformation("Turn request: {Topic}", sanitizedTopic);
+
+    httpContext.Response.ContentType = "text/event-stream";
+    httpContext.Response.Headers.CacheControl = "no-cache";
+    httpContext.Response.Headers.Connection = "keep-alive";
+
+    var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
+    var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
+    var turnOrchestrator = new QuantTurnOrchestrator(
+        apiProjectClient,
+        apiDeploymentName,
+        loggerFactory.CreateLogger<QuantTurnOrchestrator>(),
+        searchConnectionId,
+        searchIndexName);
+
+    await foreach (var agentEvent in turnOrchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
     {
         var json = JsonSerializer.Serialize(agentEvent, jsonOptions);
         await httpContext.Response.WriteAsync($"data: {json}\n\n", httpContext.RequestAborted);
@@ -149,7 +170,6 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
 await app.RunAsync();
 
 record ChatRequest(string Message);
-record DebateRequest(string Topic);
-record DebateResponse(string Topic, List<DebateTurn> Turns);
+record TurnRequest(string Topic);
 record ResearchRequest(string Topic);
 record CompareRequest(string Topic);

@@ -1,5 +1,5 @@
 using QuantLib.Agents;
-using QuantLib.Agents.Philosophers;
+using QuantLib.Agents.Turn;
 using QuantLib.Agents.Quants;
 using QuantLib.Agents.Compare;
 using Azure.AI.Projects;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 // Usage:
-//   dotnet run -- --debate "your topic"
+//   dotnet run -- --turn "market analysis request"
 //   dotnet run -- --quant "market analysis request"
 //   dotnet run -- --compare "topic to compare across models"
 
@@ -37,14 +37,14 @@ AIProjectClient aiProjectClient = new(new Uri(endpoint), credential);
 
 using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
 
-if (args.Length > 0 && args[0] == "--debate")
+if (args.Length > 0 && args[0] == "--turn")
 {
-    var topic = args.Length > 1
+    var request = args.Length > 1
         ? string.Join(" ", args.Skip(1))
-        : "How can we ensure that AI benefits all of humanity?";
+        : "Analyze current conditions and provide recommendations";
 
-    var debate = new PhilosopherDebate(aiProjectClient, deploymentName, loggerFactory.CreateLogger<PhilosopherDebate>());
-    await debate.DebateConsoleAsync(topic);
+    var turnOrchestrator = new QuantTurnOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<QuantTurnOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"]);
+    await turnOrchestrator.RunConsoleAsync(request);
     return;
 }
 
@@ -52,7 +52,7 @@ if (args.Length > 0 && args[0] == "--quant")
 {
     var request = args.Length > 1
         ? string.Join(" ", args.Skip(1))
-        : "China market overview for May 2026";
+        : "Analyze current conditions and provide recommendations";
 
     var orchestrator = new QuantOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<QuantOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"]);
     await orchestrator.RunConsoleAsync(request);
@@ -82,6 +82,6 @@ if (args.Length > 0 && args[0] == "--compare")
 }
 
 Console.WriteLine("Usage:");
-Console.WriteLine("  dotnet run -- --debate \"your topic\"");
+Console.WriteLine("  dotnet run -- --turn \"market analysis request\"");
 Console.WriteLine("  dotnet run -- --quant \"market analysis request\"");
 Console.WriteLine("  dotnet run -- --compare \"topic to compare across models\"");
