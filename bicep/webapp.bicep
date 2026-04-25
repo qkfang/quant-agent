@@ -1,24 +1,9 @@
 param name string
 param location string
 param tags object = {}
-param skuName string = 'B1'
-param skuTier string = 'Basic'
+param appServicePlanId string
 param linuxFxVersion string = 'DOTNETCORE|10.0'
 param appCommandLine string = ''
-
-resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
-  name: '${name}-asp'
-  location: location
-  tags: tags
-  sku: {
-    name: skuName
-    tier: skuTier
-  }
-  kind: 'linux'
-  properties: {
-    reserved: true
-  }
-}
 
 resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: name
@@ -29,7 +14,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   }
   kind: 'app,linux'
   properties: {
-    serverFarmId: appServicePlan.id
+    serverFarmId: appServicePlanId
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: linuxFxVersion

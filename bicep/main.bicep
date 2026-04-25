@@ -38,12 +38,27 @@ module azureFoundry 'foundry.bicep' = {
 }
 
 // ── Web Apps ─────────────────────────────────────────────────────────────────
+resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+  name: '${baseName}-asp'
+  location: location
+  tags: commonTags
+  sku: {
+    name: 'B1'
+    tier: 'Basic'
+  }
+  kind: 'linux'
+  properties: {
+    reserved: true
+  }
+}
+
 module apiApp 'webapp.bicep' = {
   name: 'apiAppDeployment'
   params: {
     name: apiAppName
     location: location
     tags: commonTags
+    appServicePlanId: appServicePlan.id
     appCommandLine: 'dotnet quantapi.dll'
   }
 }
@@ -54,6 +69,7 @@ module webApp 'webapp.bicep' = {
     name: webAppName
     location: location
     tags: commonTags
+    appServicePlanId: appServicePlan.id
     appCommandLine: 'dotnet quantweb.dll'
   }
 }
