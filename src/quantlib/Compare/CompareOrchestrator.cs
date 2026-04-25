@@ -18,7 +18,9 @@ public class CompareOrchestrator
         AIProjectClient aiProjectClient,
         IReadOnlyList<(string ModelName, string DeploymentName)> models,
         string orchestratorDeploymentName,
-        ILogger logger)
+        ILogger logger,
+        string? searchConnectionId = null,
+        string? searchIndexName = null)
     {
         _logger = logger;
         _agents = new List<CompareAgent>();
@@ -26,7 +28,7 @@ public class CompareOrchestrator
         foreach (var (modelName, deploymentName) in models)
         {
             var agentId = $"compare-{modelName.Replace(".", "-").Replace(" ", "-").ToLowerInvariant()}";
-            _agents.Add(new CompareAgent(aiProjectClient, agentId, modelName, deploymentName, logger));
+            _agents.Add(new CompareAgent(aiProjectClient, agentId, modelName, deploymentName, searchConnectionId, searchIndexName, logger));
         }
 
         _orchestrator = new CompareOrchestratorAgent(aiProjectClient, orchestratorDeploymentName, logger);

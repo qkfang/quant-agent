@@ -1,4 +1,5 @@
 using Azure.AI.Projects;
+using Azure.AI.Projects.Agents;
 using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Compare;
@@ -27,8 +28,18 @@ public class CompareAgent : BaseAgent
         string agentId,
         string modelName,
         string deploymentName,
+        string? searchConnectionId = null,
+        string? searchIndexName = null,
         ILogger? logger = null)
-        : base(aiProjectClient, agentId, deploymentName, Instructions, null, null, logger)
+        : base(aiProjectClient, agentId, deploymentName, Instructions, null,
+            agentDef =>
+            {
+                if (!string.IsNullOrWhiteSpace(searchConnectionId) && !string.IsNullOrWhiteSpace(searchIndexName))
+                    agentDef.Tools.Add(new AzureAISearchTool(new AzureAISearchToolOptions([
+                        new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName }
+                    ])));
+            },
+            logger)
     {
         ModelName = modelName;
     }

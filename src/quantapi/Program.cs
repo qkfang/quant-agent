@@ -152,11 +152,15 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
         ("gpt-5.4", app.Configuration["AZURE_AI_COMPARE_GPT54_DEPLOYMENT"] ?? "gpt-5.4")
     };
 
+    var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
+    var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
     var orchestrator = new CompareOrchestrator(
         apiProjectClient,
         models,
         apiDeploymentName,
-        loggerFactory.CreateLogger<CompareOrchestrator>());
+        loggerFactory.CreateLogger<CompareOrchestrator>(),
+        searchConnectionId,
+        searchIndexName);
 
     await foreach (var compareEvent in orchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
     {
