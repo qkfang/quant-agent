@@ -43,7 +43,7 @@ public class AlphaQuantAgent : QuantAgent
         - Update your own opinions based on new information from the discussion
 
         Be data-driven and focus on actionable insights. Quantify expected returns where possible.
-        Keep responses focused and under 500 words for initial analysis, or under 800 words when also validating other agents' opinions.
+        Keep responses focused and under 800 words.
         """;
 
     public AlphaQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)

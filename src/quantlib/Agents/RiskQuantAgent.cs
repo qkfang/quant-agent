@@ -42,7 +42,7 @@ public class RiskQuantAgent : QuantAgent
         - Update your own opinions based on new information from the discussion
 
         Be rigorous about risk quantification. Highlight worst-case scenarios.
-        Keep responses focused and under 500 words for initial analysis, or under 800 words when also validating other agents' opinions.
+        Keep responses focused and under 800 words.
         """;
 
     public RiskQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)

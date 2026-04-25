@@ -41,7 +41,7 @@ public class PricingQuantAgent : QuantAgent
         - Update your own opinions based on new information from the discussion
 
         Be quantitative and precise. Support your views with model-based reasoning.
-        Keep responses focused and under 500 words for initial analysis, or under 800 words when also validating other agents' opinions.
+        Keep responses focused and under 800 words.
         """;
 
     public PricingQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)
