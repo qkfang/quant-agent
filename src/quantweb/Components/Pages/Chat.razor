@@ -80,6 +80,27 @@
                             else
                             {
                                 @((MarkupString)FormatContent(msg.Content))
+                                @if (msg.Citations is { Count: > 0 })
+                                {
+                                    <div class="citations-section">
+                                        <span class="citations-label">📎 References</span>
+                                        <ul class="citations-list">
+                                            @foreach (var citation in msg.Citations)
+                                            {
+                                                <li>
+                                                    @if (!string.IsNullOrEmpty(citation.Url))
+                                                    {
+                                                        <a href="@citation.Url" target="_blank" rel="noopener noreferrer">@(string.IsNullOrEmpty(citation.Title) ? citation.Url : citation.Title)</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@citation.Title</span>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
                             }
                         </div>
                     </div>
@@ -213,6 +234,7 @@
                         if (string.IsNullOrEmpty(lastAgentMsg.Content))
                             lastAgentMsg.Content = evt.Message;
                         lastAgentMsg.Timestamp = evt.Timestamp;
+                        lastAgentMsg.Citations = evt.Citations;
                     }
 
                     conversationHistory.Add(new ChatMessageItem { Role = "user", Content = userMessage });
@@ -307,6 +329,7 @@
         public string AgentColor { get; set; } = string.Empty;
         public bool IsThinking { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public List<SearchCitation>? Citations { get; set; }
     }
 }
 
@@ -508,8 +531,8 @@
         display: inline-block;
         background: #667eea;
         color: white;
-        font-size: 0.6rem;
-        padding: 0.1rem 0.35rem;
+        font-size: 0.75rem;
+        padding: 0.1rem 0.4rem;
         border-radius: 4px;
         margin-left: 2px;
         cursor: help;
@@ -518,6 +541,42 @@
 
     .user-msg .citation {
         background: rgba(255,255,255,0.3);
+    }
+
+    .citations-section {
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .citations-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #888;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .citations-list {
+        margin: 0;
+        padding-left: 1rem;
+        list-style: decimal;
+    }
+
+    .citations-list li {
+        font-size: 0.85rem;
+        margin-bottom: 0.2rem;
+        color: #555;
+    }
+
+    .citations-list a {
+        color: #667eea;
+        text-decoration: none;
+        word-break: break-all;
+    }
+
+    .citations-list a:hover {
+        text-decoration: underline;
     }
 
     .thinking-indicator {

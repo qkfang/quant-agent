@@ -195,3 +195,4 @@ output principalId string = aiHub.identity.principalId
 output aiSearchConnectionName string = aiSearchEndpoint != '' ? aiSearchConnection.name : ''
 output aiSearchProjectConnectionName string = aiSearchEndpoint != '' ? aiSearchProjectConnection.name : ''
 output bingProjectConnectionName string = bingResourceId != '' ? bingSearchProjectConnection.name : ''
+output bingProjectConnectionId string = bingResourceId != '' ? bingSearchProjectConnection.id : ''

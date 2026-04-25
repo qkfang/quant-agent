@@ -91,7 +91,7 @@ module apiApp 'webapp.bicep' = {
       AZURE_TENANT_ID: tenant().tenantId
       AZURE_AI_SEARCH_CONNECTION_ID: azureFoundry.outputs.aiSearchProjectConnectionName
       AZURE_AI_SEARCH_INDEX_NAME: 'quant_knowledge'
-      AZURE_BING_CONNECTION_ID: bingSearch.outputs.externalId
+      AZURE_BING_CONNECTION_ID: azureFoundry.outputs.bingProjectConnectionId
     }
   }
 }

@@ -2,6 +2,7 @@ namespace quantweb.Models;
 
 public class ChatEvent
 {
+    public List<SearchCitation>? Citations { get; set; }
     public string Type { get; set; } = string.Empty;
     public string AgentName { get; set; } = string.Empty;
     public string Specialty { get; set; } = string.Empty;
