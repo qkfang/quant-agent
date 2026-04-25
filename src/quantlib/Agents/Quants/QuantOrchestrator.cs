@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using Azure.AI.Projects;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
@@ -37,6 +39,70 @@ public class QuantOrchestrator
                .WithOutputFrom(pricingExec, riskExec, alphaExec);
 
         return builder.Build();
+    }
+
+    public async IAsyncEnumerable<AgentEvent> RunStreamingAsync(
+        string userInput,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var rounds = new List<QuantRound>();
+
+        for (int round = 1; round <= MaxRounds; round++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return AgentEvent.RoundStarted(round);
+
+            // Signal that each agent is starting
+            yield return AgentEvent.Started(round, _pricingQuant.Name, _pricingQuant.Specialty);
+            yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty);
+            yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty);
+
+            var roundInput = new QuantRoundInput(userInput, rounds);
+            var workflow = BuildRoundWorkflow();
+            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
+
+            var responses = new List<QuantResponse>();
+            await foreach (var evt in run.WatchStreamAsync())
+            {
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantResponse response)
+                {
+                    responses.Add(response);
+                    yield return AgentEvent.Completed(round, response.AgentName, response.Specialty, response.Message);
+                }
+                else if (evt is WorkflowErrorEvent errorEvt)
+                {
+                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
+                    yield return AgentEvent.ErrorEvent(round, errorEvt.Exception?.Message ?? "Unknown error");
+                }
+                else if (evt is ExecutorFailedEvent failedEvt)
+                {
+                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
+                    yield return AgentEvent.ErrorEvent(round, $"Executor {failedEvt.ExecutorId} failed");
+                }
+            }
+
+            string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
+            var summary = await _orchestrator.RunAsync(orchestratorPrompt);
+            rounds.Add(new QuantRound(round, responses, summary));
+
+            yield return AgentEvent.Summary(round, summary);
+
+            if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return AgentEvent.Consensus(round);
+                break;
+            }
+
+            if (round == MaxRounds)
+            {
+                yield return AgentEvent.MaxRounds();
+            }
+        }
+
+        yield return AgentEvent.FinalStarted();
+        string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
+        var finalReport = await _orchestrator.RunAsync(finalPrompt);
+        yield return AgentEvent.FinalCompleted(finalReport);
     }
 
     public async Task RunConsoleAsync(string userInput)
