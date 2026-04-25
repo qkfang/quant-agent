@@ -92,7 +92,7 @@ AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
-var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], loggerFactory.CreateLogger<QuantAgentInsight>());
+var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], null, loggerFactory.CreateLogger<QuantAgentInsight>());
 
 app.MapPost("/insight", async (ChatRequest request) =>
 {
