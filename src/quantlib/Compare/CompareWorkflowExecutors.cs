@@ -29,9 +29,9 @@ internal sealed class CompareAgentExecutor : Executor<CompareRoundInput, Compare
     {
         string prompt = BuildPrompt(input, _agent.ModelName);
         _logger.LogInformation("Model {Name} is analyzing...", _agent.ModelName);
-        string response = await _agent.RunAsync(prompt);
+        var result = await _agent.RunAsync(prompt);
         _logger.LogInformation("Model {Name} completed analysis.", _agent.ModelName);
-        return new CompareResponse(_agent.ModelName, _agent.ModelName, response);
+        return new CompareResponse(_agent.ModelName, _agent.ModelName, result.Text, result.Citations);
     }
 
     private static string BuildPrompt(CompareRoundInput input, string modelName)

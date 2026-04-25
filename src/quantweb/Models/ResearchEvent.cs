@@ -1,5 +1,11 @@
 namespace quantweb.Models;
 
+public class SearchCitation
+{
+    public string Title { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+}
+
 public class ResearchEvent
 {
     public string Type { get; set; } = string.Empty;
@@ -9,6 +15,7 @@ public class ResearchEvent
     public string Message { get; set; } = string.Empty;
     public string InputMessage { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public List<SearchCitation>? Citations { get; set; }
 
     public string CssClass => AgentName switch
     {

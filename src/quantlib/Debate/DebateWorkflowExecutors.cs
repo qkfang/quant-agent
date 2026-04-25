@@ -29,9 +29,9 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
     {
         string prompt = BuildPrompt(input, _agent.Specialty);
         _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", _agent.Name, _agent.Specialty);
-        string response = await _agent.RunAsync(prompt);
+        var result = await _agent.RunAsync(prompt);
         _logger.LogInformation("Agent {Name} completed analysis.", _agent.Name);
-        return new DebateResponse(_agent.Name, _agent.Specialty, response);
+        return new DebateResponse(_agent.Name, _agent.Specialty, result.Text, result.Citations);
     }
 
     private static string BuildPrompt(DebateRoundInput input, string specialty)

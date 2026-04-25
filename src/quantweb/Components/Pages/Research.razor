@@ -134,6 +134,27 @@
                                 <div class="msg msg-output slide-up">
                                     <span class="msg-label">📤 OUTPUT</span>
                                     <div class="msg-body">@((MarkupString)FormatContent(agent.OutputMessage))</div>
+                                    @if (agent.Citations is { Count: > 0 })
+                                    {
+                                        <div class="citations-section">
+                                            <span class="citations-label">📎 References</span>
+                                            <ul class="citations-list">
+                                                @foreach (var citation in agent.Citations)
+                                                {
+                                                    <li>
+                                                        @if (!string.IsNullOrEmpty(citation.Url))
+                                                        {
+                                                            <a href="@citation.Url" target="_blank" rel="noopener noreferrer">@(string.IsNullOrEmpty(citation.Title) ? citation.Url : citation.Title)</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>@citation.Title</span>
+                                                        }
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
                                 </div>
                             }
                             else if (agent.IsWorking)
@@ -182,6 +203,27 @@
                 <div class="report-content">
                     @((MarkupString)FormatContent(finalReport))
                 </div>
+                @if (finalReportCitations is { Count: > 0 })
+                {
+                    <div class="citations-section report-citations">
+                        <span class="citations-label">📎 References</span>
+                        <ul class="citations-list">
+                            @foreach (var citation in finalReportCitations)
+                            {
+                                <li>
+                                    @if (!string.IsNullOrEmpty(citation.Url))
+                                    {
+                                        <a href="@citation.Url" target="_blank" rel="noopener noreferrer">@(string.IsNullOrEmpty(citation.Title) ? citation.Url : citation.Title)</a>
+                                    }
+                                    else
+                                    {
+                                        <span>@citation.Title</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
             </div>
         }
         else if (isFinalizing)
@@ -590,6 +632,50 @@
         white-space: pre-wrap;
     }
 
+    .citations-section {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed rgba(0,0,0,0.1);
+    }
+
+    .citations-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6366f1;
+    }
+
+    .citations-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.25rem 0 0 0;
+    }
+
+    .citations-list li {
+        font-size: 0.7rem;
+        padding: 0.15rem 0;
+        color: #475569;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .citations-list a {
+        color: #4338ca;
+        text-decoration: none;
+    }
+
+    .citations-list a:hover {
+        text-decoration: underline;
+    }
+
+    .report-citations {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed #cbd5e1;
+    }
+
     @@media (max-width: 900px) {
         .lane-headers, .grid-row {
             grid-template-columns: repeat(2, 1fr);
@@ -610,6 +696,7 @@
     private bool isFinalizing;
     private string? errorMessage;
     private string finalReport = string.Empty;
+    private List<SearchCitation>? finalReportCitations;
     private int currentRound;
     private CancellationTokenSource? cts;
 
@@ -636,6 +723,7 @@
         isFinalizing = false;
         errorMessage = null;
         finalReport = string.Empty;
+        finalReportCitations = null;
         currentRound = 0;
         roundStates.Clear();
 
@@ -699,13 +787,15 @@
                 {
                     agentState.OutputMessage = evt.Message;
                     agentState.IsWorking = false;
+                    agentState.Citations = evt.Citations;
                 }
                 else
                 {
                     completeRound.Agents[evt.AgentName] = new AgentRoundState
                     {
                         OutputMessage = evt.Message,
-                        IsWorking = false
+                        IsWorking = false,
+                        Citations = evt.Citations
                     };
                 }
                 break;
@@ -727,6 +817,7 @@
             case "FinalReportCompleted":
                 isFinalizing = false;
                 finalReport = evt.Message;
+                finalReportCitations = evt.Citations;
                 break;
 
             case "Error":
@@ -774,5 +865,6 @@
         public string InputMessage { get; set; } = string.Empty;
         public string? OutputMessage { get; set; }
         public bool IsWorking { get; set; }
+        public List<SearchCitation>? Citations { get; set; }
     }
 }

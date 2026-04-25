@@ -81,7 +81,7 @@ public class TurnOrchestrator
                     responses = finalState.CurrentResponses;
                     foreach (var resp in responses)
                     {
-                        yield return AgentEvent.Completed(round, resp.AgentName, resp.Specialty, resp.Message);
+                        yield return AgentEvent.Completed(round, resp.AgentName, resp.Specialty, resp.Message, resp.Citations);
                     }
                 }
                 else if (evt is WorkflowErrorEvent errorEvt)
@@ -97,7 +97,8 @@ public class TurnOrchestrator
             }
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
-            var summary = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summary = summaryResult.Text;
             rounds.Add(new TurnRound(round, responses, summary));
 
             yield return AgentEvent.Summary(round, summary);
@@ -116,8 +117,8 @@ public class TurnOrchestrator
 
         yield return AgentEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalReport = await _orchestrator.RunAsync(finalPrompt);
-        yield return AgentEvent.FinalCompleted(finalReport);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt);
+        yield return AgentEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
     }
 
     private static string Truncate(string text, int maxLength)
@@ -190,7 +191,8 @@ public class TurnOrchestrator
             Console.WriteLine("  \u001b[33m⟶ Orchestrator validating views and deciding next action...\u001b[0m");
             Console.WriteLine();
 
-            var summary = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summary = summaryResult.Text;
 
             rounds.Add(new TurnRound(round, responses, summary));
 
@@ -217,9 +219,9 @@ public class TurnOrchestrator
         Console.WriteLine(new string('═', 62));
 
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalReport = await _orchestrator.RunAsync(finalPrompt);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt);
 
-        Console.WriteLine($"\u001b[36m{finalReport}\u001b[0m");
+        Console.WriteLine($"\u001b[36m{finalResult.Text}\u001b[0m");
         Console.WriteLine();
         Console.WriteLine(new string('═', 62));
         Console.WriteLine("  Workflow completed.");
