@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using Azure.AI.Projects;
-using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 using QuantLib.Agents.Quants;
 
@@ -11,9 +10,7 @@ public class TurnOrchestrator
 {
     private const int MaxRounds = 10;
 
-    private readonly PricingQuantAgent _pricingQuant;
-    private readonly RiskQuantAgent _riskQuant;
-    private readonly AlphaQuantAgent _alphaQuant;
+    private readonly QuantAgent[] _agents;
     private readonly TurnOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
@@ -21,26 +18,13 @@ public class TurnOrchestrator
     {
         _logger = logger;
 
-        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger);
-        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger);
-        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger);
+        _agents =
+        [
+            new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger),
+            new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger),
+            new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger)
+        ];
         _orchestrator = new TurnOrchestratorAgent(aiProjectClient, deploymentName, logger);
-    }
-
-    private Workflow BuildSequentialWorkflow()
-    {
-        var dispatch = new TurnDispatchExecutor();
-        var alphaExec = new AlphaQuantTurnExecutor(_alphaQuant, _logger);
-        var pricingExec = new PricingQuantTurnExecutor(_pricingQuant, _logger);
-        var riskExec = new RiskQuantTurnExecutor(_riskQuant, _logger);
-
-        WorkflowBuilder builder = new(dispatch);
-        builder.AddEdge(dispatch, alphaExec)
-               .AddEdge(alphaExec, pricingExec)
-               .AddEdge(pricingExec, riskExec)
-               .WithOutputFrom(riskExec);
-
-        return builder.Build();
     }
 
     public async IAsyncEnumerable<AgentEvent> RunStreamingAsync(
@@ -54,46 +38,31 @@ public class TurnOrchestrator
             cancellationToken.ThrowIfCancellationRequested();
             yield return AgentEvent.RoundStarted(round);
 
-            string agentInputDesc;
-            if (round == 1)
-            {
-                agentInputDesc = $"Provide initial sequential analysis on: {Truncate(userInput, 200)}";
-            }
-            else
-            {
-                var lastSummary = rounds[^1].OrchestratorSummary;
-                agentInputDesc = $"Refine your analysis. Orchestrator feedback:\n{Truncate(lastSummary, 300)}";
-            }
-
-            yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty, agentInputDesc);
-            yield return AgentEvent.Started(round, _pricingQuant.Name, _pricingQuant.Specialty, agentInputDesc);
-            yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty, agentInputDesc);
-
-            var turnInput = new TurnInput(userInput, rounds);
-            var workflow = BuildSequentialWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, turnInput);
-
             var responses = new List<TurnResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
+            string orchestratorGuidance = "";
+
+            for (int i = 0; i < _agents.Length; i++)
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is TurnState finalState)
+                var agent = _agents[i];
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (i > 0)
                 {
-                    responses = finalState.CurrentResponses;
-                    foreach (var resp in responses)
-                    {
-                        yield return AgentEvent.Completed(round, resp.AgentName, resp.Specialty, resp.Message, resp.Citations);
-                    }
+                    var guidancePrompt = BuildStepGuidancePrompt(userInput, rounds, responses, agent.Name, agent.Specialty, round);
+                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt);
+                    orchestratorGuidance = guidanceResult.Text;
                 }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                    yield return AgentEvent.ErrorEvent(round, errorEvt.Exception?.Message ?? "Unknown error");
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                    yield return AgentEvent.ErrorEvent(round, $"Executor {failedEvt.ExecutorId} failed");
-                }
+
+                string inputDesc = BuildInputDescription(round, i, userInput, orchestratorGuidance, rounds);
+                yield return AgentEvent.Started(round, agent.Name, agent.Specialty, inputDesc);
+
+                _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", agent.Name, agent.Specialty);
+                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
+                var result = await agent.RunAsync(agentPrompt);
+                _logger.LogInformation("Agent {Name} completed analysis.", agent.Name);
+
+                responses.Add(new TurnResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
+                yield return AgentEvent.Completed(round, agent.Name, agent.Specialty, result.Text, result.Citations);
             }
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
@@ -121,15 +90,6 @@ public class TurnOrchestrator
         yield return AgentEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
     }
 
-    private static string Truncate(string text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
-        if (text.Length <= maxLength)
-            return text;
-        return text[..maxLength] + "...";
-    }
-
     public async Task RunConsoleAsync(string userInput)
     {
         Console.WriteLine();
@@ -148,41 +108,45 @@ public class TurnOrchestrator
             Console.WriteLine();
             Console.WriteLine($"\u001b[33m╔══ TURN {round}/{MaxRounds} ══╗\u001b[0m");
             Console.WriteLine();
-            Console.WriteLine("  ⟶ Running agents sequentially: Alpha → Pricing → Risk...");
-            Console.WriteLine();
-
-            var turnInput = new TurnInput(userInput, rounds);
-            var workflow = BuildSequentialWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, turnInput);
 
             var responses = new List<TurnResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
-            {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is TurnState finalState)
-                {
-                    responses = finalState.CurrentResponses;
-                }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                }
-            }
+            string orchestratorGuidance = "";
 
-            foreach (var response in responses)
+            for (int i = 0; i < _agents.Length; i++)
             {
-                var color = response.AgentName switch
+                var agent = _agents[i];
+
+                if (i > 0)
+                {
+                    Console.WriteLine("  \u001b[33m⟶ Orchestrator providing guidance for next agent...\u001b[0m");
+                    Console.WriteLine();
+
+                    var guidancePrompt = BuildStepGuidancePrompt(userInput, rounds, responses, agent.Name, agent.Specialty, round);
+                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt);
+                    orchestratorGuidance = guidanceResult.Text;
+
+                    Console.WriteLine($"  \u001b[33m┌─ [Orchestrator → {agent.Name}] ─┐\u001b[0m");
+                    Console.WriteLine($"  \u001b[33m{orchestratorGuidance}\u001b[0m");
+                    Console.WriteLine($"  \u001b[33m└{'─'.Repeat(40)}┘\u001b[0m");
+                    Console.WriteLine();
+                }
+
+                Console.WriteLine($"  ⟶ Running {agent.Name} ({agent.Specialty})...");
+                Console.WriteLine();
+
+                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
+                var result = await agent.RunAsync(agentPrompt);
+                responses.Add(new TurnResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
+
+                var color = agent.Name switch
                 {
                     "Alpha Quant" => "\u001b[32m",
                     "Pricing Quant" => "\u001b[34m",
                     "Risk Quant" => "\u001b[35m",
                     _ => "\u001b[0m"
                 };
-                Console.WriteLine($"  {color}┌─ [{response.AgentName}] ({response.Specialty}) ─┐\u001b[0m");
-                Console.WriteLine($"  {color}{response.Message}\u001b[0m");
+                Console.WriteLine($"  {color}┌─ [{agent.Name}] ({agent.Specialty}) ─┐\u001b[0m");
+                Console.WriteLine($"  {color}{result.Text}\u001b[0m");
                 Console.WriteLine($"  {color}└{'─'.Repeat(40)}┘\u001b[0m");
                 Console.WriteLine();
             }
@@ -227,6 +191,133 @@ public class TurnOrchestrator
         Console.WriteLine("  Workflow completed.");
     }
 
+    private static string BuildInputDescription(int round, int agentIndex, string userInput, string orchestratorGuidance, IReadOnlyList<TurnRound> previousRounds)
+    {
+        if (agentIndex == 0 && round == 1)
+            return $"Initial analysis: {Truncate(userInput, 200)}";
+
+        if (!string.IsNullOrEmpty(orchestratorGuidance))
+            return $"Orchestrator guidance: {Truncate(orchestratorGuidance, 300)}";
+
+        if (previousRounds.Count > 0)
+            return $"Refine analysis based on turn {round - 1} feedback: {Truncate(previousRounds[^1].OrchestratorSummary, 200)}";
+
+        return $"Analyzing: {Truncate(userInput, 200)}";
+    }
+
+    private static string Truncate(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+        if (text.Length <= maxLength)
+            return text;
+        return text[..maxLength] + "...";
+    }
+
+    private static string BuildAgentPrompt(string userInput, IReadOnlyList<TurnRound> previousRounds,
+        IReadOnlyList<TurnResponse> currentResponses, string specialty, string orchestratorGuidance)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"User request: {userInput}");
+        sb.AppendLine();
+
+        if (previousRounds.Count > 0)
+        {
+            sb.AppendLine("=== PREVIOUS TURNS ===");
+            foreach (var round in previousRounds)
+            {
+                sb.AppendLine($"--- Turn {round.RoundNumber} ---");
+                foreach (var resp in round.Responses)
+                {
+                    sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
+                    sb.AppendLine();
+                }
+                sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
+                sb.AppendLine();
+            }
+            sb.AppendLine("=== END PREVIOUS TURNS ===");
+            sb.AppendLine();
+        }
+
+        if (currentResponses.Count > 0)
+        {
+            sb.AppendLine("=== CURRENT TURN RESPONSES SO FAR ===");
+            foreach (var resp in currentResponses)
+            {
+                sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
+                sb.AppendLine();
+            }
+            sb.AppendLine("=== END CURRENT RESPONSES ===");
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrEmpty(orchestratorGuidance))
+        {
+            sb.AppendLine("=== ORCHESTRATOR GUIDANCE ===");
+            sb.AppendLine(orchestratorGuidance);
+            sb.AppendLine("=== END GUIDANCE ===");
+            sb.AppendLine();
+            sb.AppendLine($"Follow the orchestrator's guidance above. Provide your analysis from your specialty perspective ({specialty}).");
+        }
+        else if (currentResponses.Count > 0)
+        {
+            sb.AppendLine($"Based on the analyses above, provide your perspective from your specialty ({specialty}).");
+            sb.AppendLine("Build upon, validate, or challenge the previous agents' views.");
+        }
+        else if (previousRounds.Count > 0)
+        {
+            sb.AppendLine($"Based on the previous turns and orchestrator feedback, refine your analysis from your specialty perspective ({specialty}).");
+        }
+        else
+        {
+            sb.AppendLine($"Provide your initial analysis from your specialty perspective ({specialty}).");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildStepGuidancePrompt(string userInput, IReadOnlyList<TurnRound> previousRounds,
+        IReadOnlyList<TurnResponse> currentResponses, string nextAgentName, string nextAgentSpecialty, int currentRound)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"User request: {userInput}");
+        sb.AppendLine($"Current turn: {currentRound}/{MaxRounds}");
+        sb.AppendLine();
+        sb.AppendLine($"The next agent to analyze is: {nextAgentName} ({nextAgentSpecialty})");
+        sb.AppendLine();
+
+        if (previousRounds.Count > 0)
+        {
+            sb.AppendLine("=== PREVIOUS TURNS ===");
+            foreach (var round in previousRounds)
+            {
+                sb.AppendLine($"--- Turn {round.RoundNumber} ---");
+                foreach (var resp in round.Responses)
+                {
+                    sb.AppendLine($"[{resp.AgentName}]: {Truncate(resp.Message, 300)}");
+                }
+                sb.AppendLine($"[Summary]: {Truncate(round.OrchestratorSummary, 300)}");
+            }
+            sb.AppendLine("=== END PREVIOUS TURNS ===");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("=== CURRENT TURN RESPONSES SO FAR ===");
+        foreach (var resp in currentResponses)
+        {
+            sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
+            sb.AppendLine();
+        }
+        sb.AppendLine("=== END CURRENT RESPONSES ===");
+        sb.AppendLine();
+
+        sb.AppendLine($"Based on the analysis so far, provide focused guidance for {nextAgentName} ({nextAgentSpecialty}).");
+        sb.AppendLine("What specific aspects should they focus on? What gaps need to be addressed from their specialty?");
+        sb.AppendLine("Keep your guidance concise (2-3 sentences).");
+
+        return sb.ToString();
+    }
+
     private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<TurnRound> previousRounds, IReadOnlyList<TurnResponse> currentResponses, int currentRound)
     {
         var sb = new StringBuilder();
@@ -260,7 +351,7 @@ public class TurnOrchestrator
         }
         sb.AppendLine("=== END CURRENT TURN ===");
         sb.AppendLine();
-        sb.AppendLine("The agents provided their views sequentially, each building on the previous agent's analysis.");
+        sb.AppendLine("Each agent was guided by you and built upon the previous agent's analysis.");
         sb.AppendLine("Validate whether the combined view is coherent and correct.");
         sb.AppendLine("Identify areas of agreement, disagreement, and gaps.");
         sb.AppendLine("If the views are validated and agents substantially agree on key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
