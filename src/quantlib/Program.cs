@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 // Usage:
 //   dotnet run -- --turn "market analysis request"
 //   dotnet run -- --quant "market analysis request"
-//   dotnet run -- --compare "topic to compare across models"
+//   dotnet run -- --compare "market analysis request"
 
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: false)
@@ -63,7 +63,7 @@ if (args.Length > 0 && args[0] == "--compare")
 {
     var request = args.Length > 1
         ? string.Join(" ", args.Skip(1))
-        : "What are the key factors driving global inflation in 2026?";
+        : "Analyze current conditions and provide recommendations";
 
     var models = new List<(string ModelName, string DeploymentName)>
     {
@@ -84,4 +84,4 @@ if (args.Length > 0 && args[0] == "--compare")
 Console.WriteLine("Usage:");
 Console.WriteLine("  dotnet run -- --turn \"market analysis request\"");
 Console.WriteLine("  dotnet run -- --quant \"market analysis request\"");
-Console.WriteLine("  dotnet run -- --compare \"topic to compare across models\"");
+Console.WriteLine("  dotnet run -- --compare \"market analysis request\"");
