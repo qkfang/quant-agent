@@ -15,7 +15,7 @@ public class CompareEvent
     {
         "gpt-4o" => "agent-gpt4o",
         "gpt-4.1" => "agent-gpt41",
-        "gpt-5.2" => "agent-gpt52",
+        "gpt-5.4" => "agent-gpt52",
         "Orchestrator" => "agent-orchestrator",
         _ => "agent-default"
     };
@@ -24,7 +24,7 @@ public class CompareEvent
     {
         "gpt-4o" => "🔵",
         "gpt-4.1" => "🟣",
-        "gpt-5.2" => "🟢",
+        "gpt-5.4" => "🟢",
         "Orchestrator" => "🎯",
         _ => "🤖"
     };
@@ -33,7 +33,7 @@ public class CompareEvent
     {
         "gpt-4o" => "#3b82f6",
         "gpt-4.1" => "#8b5cf6",
-        "gpt-5.2" => "#22c55e",
+        "gpt-5.4" => "#22c55e",
         "Orchestrator" => "#f59e0b",
         _ => "#94a3b8"
     };

@@ -20,6 +20,8 @@ public class QuantAgent : BaseAgent
         string instructions,
         string? searchConnectionId = null,
         string? searchIndexName = null,
+        string? bingConnectionId = null,
+        string? bingInstanceName = null,
         ILogger? logger = null)
         : base(aiProjectClient, agentId, deploymentName, instructions, null,
             agentDef =>
@@ -27,6 +29,11 @@ public class QuantAgent : BaseAgent
                 if (!string.IsNullOrWhiteSpace(searchConnectionId) && !string.IsNullOrWhiteSpace(searchIndexName))
                     agentDef.Tools.Add(new AzureAISearchTool(new AzureAISearchToolOptions([
                         new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName }
+                    ])));
+
+                if (!string.IsNullOrWhiteSpace(bingConnectionId) && !string.IsNullOrWhiteSpace(bingInstanceName))
+                    agentDef.Tools.Add(new BingCustomSearchPreviewTool(new BingCustomSearchToolOptions([
+                        new BingCustomSearchConfiguration(bingConnectionId, bingInstanceName)
                     ])));
             },
             logger)

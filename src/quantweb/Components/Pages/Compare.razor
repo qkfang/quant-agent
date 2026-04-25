@@ -708,7 +708,7 @@
     private CancellationTokenSource? cts;
 
     private readonly List<RoundState> roundStates = new();
-    private static readonly string[] modelOrder = ["gpt-4o", "gpt-4.1", "gpt-5.2"];
+    private static readonly string[] modelOrder = ["gpt-4o", "gpt-4.1", "gpt-5.4"];
 
     private readonly string[] sampleQueries = new[]
     {
@@ -849,7 +849,7 @@
     {
         "gpt-4o" => "🔵",
         "gpt-4.1" => "🟣",
-        "gpt-5.2" => "🟢",
+        "gpt-5.4" => "🟢",
         _ => "🤖"
     };
 
@@ -857,7 +857,7 @@
     {
         "gpt-4o" => "model-gpt4o-hdr",
         "gpt-4.1" => "model-gpt41-hdr",
-        "gpt-5.2" => "model-gpt52-hdr",
+        "gpt-5.4" => "model-gpt52-hdr",
         _ => ""
     };
 

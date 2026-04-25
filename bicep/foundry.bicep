@@ -38,7 +38,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = 
 
 resource gpt5oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: aiHub
-  name: 'gpt-5.4'
+  name: 'ggpt-5.4'
   sku: {
     name: 'GlobalStandard'
     capacity: 1000
@@ -46,7 +46,7 @@ resource gpt5oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-5.4'
+      name: 'ggpt-5.4'
       version: '2026-03-05'
     }
     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'

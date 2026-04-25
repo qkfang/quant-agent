@@ -43,7 +43,7 @@ if (args.Length > 0 && args[0] == "--turn")
         ? string.Join(" ", args.Skip(1))
         : "Analyze current conditions and provide recommendations";
 
-    var turnOrchestrator = new TurnOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<TurnOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"]);
+    var turnOrchestrator = new TurnOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<TurnOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"], config["AZURE_BING_CONNECTION_ID"], config["AZURE_BING_INSTANCE_NAME"]);
     await turnOrchestrator.RunConsoleAsync(request);
     return;
 }
@@ -54,7 +54,7 @@ if (args.Length > 0 && args[0] == "--quant")
         ? string.Join(" ", args.Skip(1))
         : "Analyze current conditions and provide recommendations";
 
-    var orchestrator = new DebateOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<DebateOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"]);
+    var orchestrator = new DebateOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<DebateOrchestrator>(), config["AZURE_AI_SEARCH_CONNECTION_ID"], config["AZURE_AI_SEARCH_INDEX_NAME"], config["AZURE_BING_CONNECTION_ID"], config["AZURE_BING_INSTANCE_NAME"]);
     await orchestrator.RunConsoleAsync(request);
     return;
 }
@@ -69,7 +69,7 @@ if (args.Length > 0 && args[0] == "--compare")
     {
         ("gpt-4o", config["AZURE_AI_COMPARE_GPT4O_DEPLOYMENT"] ?? "gpt-4o"),
         ("gpt-4.1", config["AZURE_AI_COMPARE_GPT41_DEPLOYMENT"] ?? "gpt-4.1"),
-        ("gpt-5.2", config["AZURE_AI_COMPARE_GPT52_DEPLOYMENT"] ?? "gpt-5.2")
+        ("gpt-5.4", config["AZURE_AI_COMPARE_GPT52_DEPLOYMENT"] ?? "gpt-5.4")
     };
 
     var orchestrator = new CompareOrchestrator(

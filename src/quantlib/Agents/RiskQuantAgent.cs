@@ -45,8 +45,8 @@ public class RiskQuantAgent : QuantAgent
         Keep responses focused and under 800 words.
         """;
 
-    public RiskQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Risk Quant", "Risk Management & VaR", "\u001b[35m", deploymentName, Instructions, searchConnectionId, searchIndexName, logger)
+    public RiskQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null, string? bingInstanceName = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Risk Quant", "Risk Management & VaR", "\u001b[35m", deploymentName, Instructions, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger)
     {
     }
 }
