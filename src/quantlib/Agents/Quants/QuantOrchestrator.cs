@@ -1,5 +1,6 @@
 using System.Text;
 using Azure.AI.Projects;
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Quants;
@@ -14,14 +15,28 @@ public class QuantOrchestrator
     private readonly QuantOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
-    public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger)
+    public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? knowledgeBaseId = null)
     {
         _logger = logger;
 
-        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, logger);
-        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, logger);
-        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, logger);
+        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
+        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
+        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
         _orchestrator = new QuantOrchestratorAgent(aiProjectClient, deploymentName, logger);
+    }
+
+    private Workflow BuildRoundWorkflow()
+    {
+        var dispatchExecutor = new QuantRoundDispatchExecutor();
+        var pricingExec = new PricingQuantExecutor(_pricingQuant, _logger);
+        var riskExec = new RiskQuantExecutor(_riskQuant, _logger);
+        var alphaExec = new AlphaQuantExecutor(_alphaQuant, _logger);
+
+        WorkflowBuilder builder = new(dispatchExecutor);
+        builder.AddFanOutEdge(dispatchExecutor, [pricingExec, riskExec, alphaExec])
+               .WithOutputFrom(pricingExec, riskExec, alphaExec);
+
+        return builder.Build();
     }
 
     public async Task RunConsoleAsync(string userInput)
@@ -42,30 +57,30 @@ public class QuantOrchestrator
             Console.WriteLine();
             Console.WriteLine($"\u001b[33m╔══ ROUND {round}/{MaxRounds} ══╗\u001b[0m");
             Console.WriteLine();
-
-            // Build prompts for each quant agent
-            string pricingPrompt = BuildQuantPrompt(userInput, rounds, _pricingQuant);
-            string riskPrompt = BuildQuantPrompt(userInput, rounds, _riskQuant);
-            string alphaPrompt = BuildQuantPrompt(userInput, rounds, _alphaQuant);
-
-            // Fan-out: run all 3 quant agents concurrently
             Console.WriteLine("  ⟶ Dispatching to all quant agents concurrently...");
             Console.WriteLine();
 
-            var pricingTask = RunAgentWithStreamingAsync(_pricingQuant, pricingPrompt);
-            var riskTask = RunAgentWithStreamingAsync(_riskQuant, riskPrompt);
-            var alphaTask = RunAgentWithStreamingAsync(_alphaQuant, alphaPrompt);
+            var roundInput = new QuantRoundInput(userInput, rounds);
+            var workflow = BuildRoundWorkflow();
+            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
 
-            var results = await Task.WhenAll(pricingTask, riskTask, alphaTask);
-
-            var responses = new List<QuantResponse>
+            var responses = new List<QuantResponse>();
+            await foreach (var evt in run.WatchStreamAsync())
             {
-                new(_pricingQuant.Name, _pricingQuant.Specialty, results[0]),
-                new(_riskQuant.Name, _riskQuant.Specialty, results[1]),
-                new(_alphaQuant.Name, _alphaQuant.Specialty, results[2])
-            };
+                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is QuantResponse response)
+                {
+                    responses.Add(response);
+                }
+                else if (evt is WorkflowErrorEvent errorEvt)
+                {
+                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
+                }
+                else if (evt is ExecutorFailedEvent failedEvt)
+                {
+                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
+                }
+            }
 
-            // Stream each agent's response to console
             foreach (var response in responses)
             {
                 var color = response.AgentName switch
@@ -81,7 +96,6 @@ public class QuantOrchestrator
                 Console.WriteLine();
             }
 
-            // Orchestrator: summarize, check consensus, decide next step
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             Console.WriteLine("  \u001b[33m⟶ Orchestrator summarizing and evaluating consensus...\u001b[0m");
             Console.WriteLine();
@@ -95,7 +109,6 @@ public class QuantOrchestrator
             Console.WriteLine($"  \u001b[33m└{'─'.Repeat(40)}┘\u001b[0m");
             Console.WriteLine();
 
-            // Check if orchestrator indicates consensus
             if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine("  \u001b[32m✓ All agents have reached consensus. Terminating workflow.\u001b[0m");
@@ -108,7 +121,6 @@ public class QuantOrchestrator
             }
         }
 
-        // Final output
         Console.WriteLine();
         Console.WriteLine(new string('═', 62));
         Console.WriteLine("\u001b[36m  FINAL ANALYSIS REPORT\u001b[0m");
@@ -121,47 +133,6 @@ public class QuantOrchestrator
         Console.WriteLine();
         Console.WriteLine(new string('═', 62));
         Console.WriteLine("  Workflow completed.");
-    }
-
-    private async Task<string> RunAgentWithStreamingAsync(QuantAgent agent, string prompt)
-    {
-        _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", agent.Name, agent.Specialty);
-        var response = await agent.RunAsync(prompt);
-        _logger.LogInformation("Agent {Name} completed analysis.", agent.Name);
-        return response;
-    }
-
-    private static string BuildQuantPrompt(string userInput, IReadOnlyList<QuantRound> previousRounds, QuantAgent agent)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"User request: {userInput}");
-        sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS DISCUSSION ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Round {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS DISCUSSION ===");
-            sb.AppendLine();
-            sb.AppendLine($"Based on the previous discussion and orchestrator feedback, please refine your analysis from your specialty perspective ({agent.Specialty}).");
-            sb.AppendLine("Address any disagreements or gaps identified. State clearly whether you agree or disagree with the other agents' views and why.");
-        }
-        else
-        {
-            sb.AppendLine($"Provide your initial analysis from your specialty perspective ({agent.Specialty}).");
-        }
-
-        return sb.ToString();
     }
 
     private static string BuildOrchestratorPrompt(string userInput, IReadOnlyList<QuantRound> previousRounds, IReadOnlyList<QuantResponse> currentResponses, int currentRound)
@@ -227,7 +198,6 @@ public class QuantOrchestrator
 
         return sb.ToString();
     }
-
 }
 
 internal static class StringExtensions

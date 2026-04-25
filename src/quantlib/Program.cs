@@ -52,7 +52,7 @@ if (args.Length > 0 && args[0] == "--quant")
         ? string.Join(" ", args.Skip(1))
         : "China market overview for May 2026";
 
-    var orchestrator = new QuantOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<QuantOrchestrator>());
+    var orchestrator = new QuantOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<QuantOrchestrator>(), config["AZURE_AI_SEARCH_KNOWLEDGE_BASE_ID"]);
     await orchestrator.RunConsoleAsync(request);
     return;
 }

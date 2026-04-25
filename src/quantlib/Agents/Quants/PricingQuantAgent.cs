@@ -29,8 +29,8 @@ public class PricingQuantAgent : QuantAgent
         When asked to refine, address specific disagreements and state your position clearly.
         """;
 
-    public PricingQuantAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Pricing Quant", "Pricing Models & Derivatives", "\u001b[34m", deploymentName, Instructions, logger)
+    public PricingQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? knowledgeBaseId = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Pricing Quant", "Pricing Models & Derivatives", "\u001b[34m", deploymentName, Instructions, knowledgeBaseId, logger)
     {
     }
 }
