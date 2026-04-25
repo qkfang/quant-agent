@@ -25,6 +25,14 @@ module aiSearch 'aisearch.bicep' = {
   }
 }
 
+// ── Bing Search ──────────────────────────────────────────────────────────────
+module bingSearch 'bing.bicep' = {
+  name: 'bingSearchDeployment'
+  params: {
+    bingSearchName: '${baseName}-bing'
+  }
+}
+
 // ── AI Foundry ───────────────────────────────────────────────────────────────
 module azureFoundry 'foundry.bicep' = {
   name: 'foundryDeployment'
@@ -37,15 +45,8 @@ module azureFoundry 'foundry.bicep' = {
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
     appInsightsResourceId: monitoring.outputs.appInsightsId
     appInsightsInstrumentationKey: monitoring.outputs.appInsightsInstrumentationKey
-  }
-}
-
-// ── Bing Search ──────────────────────────────────────────────────────────────
-module bingSearch 'bing.bicep' = {
-  name: 'bingSearchDeployment'
-  params: {
-    foundryAccountName: azureFoundry.outputs.accountName
-    bingSearchName: '${baseName}-bing'
+    bingResourceId: bingSearch.outputs.resourceId
+    bingApiKey: bingSearch.outputs.apiKey
   }
 }
 
@@ -85,6 +86,13 @@ module apiApp 'webapp.bicep' = {
     appSettings: {
       APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.appInsightsConnectionString
       ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
+      AZURE_AI_PROJECT_ENDPOINT: azureFoundry.outputs.projectEndpoint
+      AZURE_AI_MODEL_DEPLOYMENT_NAME: azureFoundry.outputs.deploymentName
+      AZURE_TENANT_ID: tenant().tenantId
+      AZURE_AI_SEARCH_CONNECTION_ID: azureFoundry.outputs.aiSearchProjectConnectionName
+      AZURE_AI_SEARCH_INDEX_NAME: 'quant_knowledge'
+      AZURE_BING_CONNECTION_ID: bingSearch.outputs.resourceId
+      AZURE_BING_INSTANCE_NAME: '${baseName}-bing'
     }
   }
 }

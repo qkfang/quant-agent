@@ -6,6 +6,8 @@ param aiSearchResourceId string = ''
 param appInsightsConnectionString string = ''
 param appInsightsResourceId string = ''
 param appInsightsInstrumentationKey string = ''
+param bingResourceId string = ''
+param bingApiKey string = ''
 
 resource aiHub 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
   name: name
@@ -124,6 +126,46 @@ resource aiSearchProjectConnection 'Microsoft.CognitiveServices/accounts/project
   }
 }
 
+#disable-next-line BCP081
+resource bingSearchConnection 'Microsoft.CognitiveServices/accounts/connections@2025-10-01-preview' = if (bingResourceId != '') {
+  parent: aiHub
+  name: '${name}-bingsearchconnection'
+  properties: {
+    authType: 'ApiKey'
+    category: 'GroundingWithBingSearch'
+    target: 'https://api.bing.microsoft.com/'
+    credentials: {
+      key: bingApiKey
+    }
+    metadata: {
+      displayName: 'quant-bing'
+      type: 'bing_grounding'
+      ApiType: 'Azure'
+      ResourceId: bingResourceId
+    }
+  }
+}
+
+#disable-next-line BCP081
+resource bingSearchProjectConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-10-01-preview' = if (bingResourceId != '') {
+  parent: aiProject
+  name: '${name}-bingsearchconnection'
+  properties: {
+    authType: 'ApiKey'
+    category: 'GroundingWithBingSearch'
+    target: 'https://api.bing.microsoft.com/'
+    credentials: {
+      key: bingApiKey
+    }
+    metadata: {
+      displayName: 'quant-bing'
+      type: 'bing_grounding'
+      ApiType: 'Azure'
+      ResourceId: bingResourceId
+    }
+  }
+}
+
 resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (appInsightsConnectionString != '') {
   parent: aiProject
   name: 'app-insights-connection'
@@ -143,6 +185,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
 output accountName string = aiHub.name
 output resourceId string = aiHub.id
 output endpoint string = aiHub.properties.endpoint
+output projectEndpoint string = '${aiHub.properties.endpoint}api/projects/${aiProject.name}'
 output deploymentName string = gpt5oDeployment.name
 output gpt4oDeploymentName string = gpt4oDeployment.name
 output gpt41DeploymentName string = gpt41Deployment.name
@@ -150,3 +193,5 @@ output projectName string = aiProject.name
 output location string = location
 output principalId string = aiHub.identity.principalId
 output aiSearchConnectionName string = aiSearchEndpoint != '' ? aiSearchConnection.name : ''
+output aiSearchProjectConnectionName string = aiSearchEndpoint != '' ? aiSearchProjectConnection.name : ''
+output bingProjectConnectionName string = bingResourceId != '' ? bingSearchProjectConnection.name : ''
