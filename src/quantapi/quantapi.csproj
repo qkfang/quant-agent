@@ -8,12 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <PackageReference Include="Azure.AI.Extensions.OpenAI" Version="2.0.0" />
-      <PackageReference Include="Azure.AI.Projects" Version="2.0.0" />
       <PackageReference Include="Azure.Identity" Version="1.20.0" />
       <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
       <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.1" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../quantlib/quantlib.csproj" />
   </ItemGroup>
 
 </Project>

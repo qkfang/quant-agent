@@ -3,7 +3,7 @@ using Azure.AI.Projects.Agents;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 
-namespace QuantAgent.Agents;
+namespace QuantLib.Agents;
 
 public class QuantAgentInsight : BaseAgent
 {

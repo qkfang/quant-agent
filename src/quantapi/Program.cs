@@ -1,49 +1,9 @@
+using QuantLib.Agents;
+using QuantLib.Agents.Philosophers;
 using Azure.AI.Projects;
-using Azure.AI.Projects.Agents;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
-using QuantAgent.Agents;
-using QuantAgent.Agents.Philosophers;
 
-// ──────────────────────────────────────────────────────────
-// Console debate mode: dotnet run -- --debate "your topic"
-// ──────────────────────────────────────────────────────────
-if (args.Length > 0 && args[0] == "--debate")
-{
-    var topic = args.Length > 1
-        ? string.Join(" ", args.Skip(1))
-        : "How can we ensure that AI benefits all of humanity?";
-
-    var config = new ConfigurationBuilder()
-        .AddJsonFile("appsettings.json", optional: false)
-        .AddJsonFile("appsettings.Development.json", optional: true)
-        .AddEnvironmentVariables()
-        .Build();
-
-    var endpoint = config["AZURE_AI_PROJECT_ENDPOINT"]
-        ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
-    var deploymentName = config["AZURE_AI_MODEL_DEPLOYMENT_NAME"]
-        ?? throw new InvalidOperationException("AZURE_AI_MODEL_DEPLOYMENT_NAME is not set.");
-    var tenantId = config["AZURE_TENANT_ID"];
-
-    var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-    {
-        TenantId = tenantId
-    });
-
-    AIProjectClient aiProjectClient = new(new Uri(endpoint), credential);
-
-    using var consoleLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
-    var consoleLogger = consoleLoggerFactory.CreateLogger<PhilosopherDebate>();
-
-    var debate = new PhilosopherDebate(aiProjectClient, deploymentName, consoleLogger);
-    await debate.DebateConsoleAsync(topic);
-    return;
-}
-
-// ──────────────────────────────────────────────────────────
-// Web API mode (default): starts the ASP.NET Core server
-// ──────────────────────────────────────────────────────────
 var builder = WebApplication.CreateBuilder(args);
 
 var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];

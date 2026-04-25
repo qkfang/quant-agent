@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 using System.Diagnostics;
 
-namespace QuantAgent.Agents;
+namespace QuantLib.Agents;
 
 public abstract class BaseAgent
 {

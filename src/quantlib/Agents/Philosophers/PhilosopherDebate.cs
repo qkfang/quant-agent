@@ -1,18 +1,8 @@
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
 
-namespace QuantAgent.Agents.Philosophers;
+namespace QuantLib.Agents.Philosophers;
 
-/// <summary>
-/// Orchestrates a multi-agent philosophical debate between Socrates, Plato, and Aristotle.
-/// Follows the same pattern as agentic-philosophers but uses Azure AI Foundry SDK.
-/// 
-/// Debate flow:
-///   1. Socrates opens with probing questions
-///   2. Plato presents philosophical ideas and structured arguments
-///   3. Aristotle provides logical analysis and practical insights
-///   4. Socrates summarizes the discussion
-/// </summary>
 public class PhilosopherDebate
 {
     private const string SocratesAgentId = "philosopher-socrates";
@@ -41,16 +31,12 @@ public class PhilosopherDebate
             deploymentName, AristotleInstructions, logger);
     }
 
-    /// <summary>
-    /// Runs the debate and returns structured turn data (for API use).
-    /// </summary>
     public async Task<List<DebateTurn>> DebateAsync(string topic)
     {
         _logger.LogInformation("Starting philosopher debate on topic: {Topic}", topic);
 
         var history = new List<DebateTurn>();
 
-        // Turn order: Socrates → Plato → Aristotle → Socrates (summary)
         var turnOrder = new (PhilosopherAgent Agent, string Role)[]
         {
             (_socrates, "opener"),
@@ -64,7 +50,6 @@ public class PhilosopherDebate
             string prompt;
             if (role == "summarizer")
             {
-                // Build a summary-specific prompt
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine($"Debate topic: {topic}");
                 sb.AppendLine();
@@ -91,9 +76,6 @@ public class PhilosopherDebate
         return history;
     }
 
-    /// <summary>
-    /// Runs the debate with colored console output (for local console mode).
-    /// </summary>
     public async Task DebateConsoleAsync(string topic)
     {
         Console.WriteLine();
@@ -112,9 +94,9 @@ public class PhilosopherDebate
         {
             var color = turn.Speaker switch
             {
-                "Socrates" => "\u001b[34m",   // Blue
-                "Plato" => "\u001b[35m",       // Magenta
-                "Aristotle" => "\u001b[32m",   // Green
+                "Socrates" => "\u001b[34m",
+                "Plato" => "\u001b[35m",
+                "Aristotle" => "\u001b[32m",
                 _ => "\u001b[0m"
             };
 
