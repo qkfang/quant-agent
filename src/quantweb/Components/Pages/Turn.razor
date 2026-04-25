@@ -1,34 +1,34 @@
-@page "/debate"
+@page "/turn"
 @using quantweb.Models
 @using quantweb.Services
-@inject IResearchService ResearchService
+@inject ITurnService TurnService
 @rendermode InteractiveServer
 
-<PageTitle>Debate</PageTitle>
+<PageTitle>Turn</PageTitle>
 
-<div class="research-container">
-    <div class="research-header">
-        <h1>⚡ Debate</h1>
-        <p class="subtitle">Fan-out parallel analysis where agents debate, reason with each other, and converge in real-time.</p>
+<div class="turn-container">
+    <div class="turn-header">
+        <h1>🔄 Turn</h1>
+        <p class="subtitle">Sequential turn-based analysis where agents build on each other's insights (Alpha → Pricing → Risk).</p>
     </div>
 
     <div class="query-section">
         <div class="query-input-group">
             <textarea @bind="topicText"
                       @bind:event="oninput"
-                      placeholder="Enter your research topic... e.g., 'Impact of rising interest rates on tech sector valuations'"
+                      placeholder="Enter your analysis topic... e.g., 'Impact of rising interest rates on tech sector valuations'"
                       rows="3"
                       disabled="@isRunning"
                       class="query-input"></textarea>
-            <button class="btn-run" @onclick="StartResearch" disabled="@(isRunning || string.IsNullOrWhiteSpace(topicText))">
+            <button class="btn-run" @onclick="StartTurn" disabled="@(isRunning || string.IsNullOrWhiteSpace(topicText))">
                 @if (isRunning)
                 {
                     <span class="spinner"></span>
-                    <span>Researching...</span>
+                    <span>Analyzing...</span>
                 }
                 else
                 {
-                    <span>🚀 Start Research</span>
+                    <span>🚀 Start Analysis</span>
                 }
             </button>
         </div>
@@ -56,7 +56,7 @@
                 <h2>📊 Agent Analysis</h2>
                 @if (currentRound > 0)
                 {
-                    <span class="round-badge">Round @currentRound</span>
+                    <span class="round-badge">Turn @currentRound</span>
                 }
             </div>
             @if (isRunning)
@@ -72,16 +72,16 @@
         <!-- Column Headers -->
         <div class="lane-headers">
             <div class="lane-hdr orch-hdr">🎯 Orchestrator</div>
+            <div class="lane-hdr alpha-hdr">📈 Alpha</div>
             <div class="lane-hdr pricing-hdr">💰 Pricing</div>
             <div class="lane-hdr risk-hdr">🛡️ Risk</div>
-            <div class="lane-hdr alpha-hdr">📈 Alpha</div>
         </div>
 
         @foreach (var round in roundStates)
         {
             <!-- Round Divider -->
             <div class="round-divider">
-                <span class="round-label">Round @round.RoundNumber</span>
+                <span class="round-label">Turn @round.RoundNumber</span>
             </div>
 
             <!-- Row 1: Orchestrator dispatches to agents -->
@@ -120,7 +120,7 @@
                     {
                         <div class="thinking-indicator">
                             <div class="thinking-dots"><span></span><span></span><span></span></div>
-                            <span class="thinking-text">Agents analyzing...</span>
+                            <span class="thinking-text">Agents analyzing sequentially...</span>
                         </div>
                     }
                 </div>
@@ -164,7 +164,7 @@
                         {
                             <div class="thinking-indicator">
                                 <div class="thinking-dots"><span></span><span></span><span></span></div>
-                                <span class="thinking-text">Orchestrator synthesizing...</span>
+                                <span class="thinking-text">Orchestrator validating...</span>
                             </div>
                         }
                     </div>
@@ -197,17 +197,17 @@
 </div>
 
 <style>
-    .research-container {
+    .turn-container {
         max-width: 1400px;
         margin: 0 auto;
         padding: 1rem;
     }
 
-    .research-header {
+    .turn-header {
         margin-bottom: 1.5rem;
     }
 
-    .research-header h1 {
+    .turn-header h1 {
         font-size: 1.75rem;
         color: #1a1a2e;
         margin-bottom: 0.25rem;
@@ -404,9 +404,9 @@
     }
 
     .orch-hdr { background: #f59e0b; }
+    .alpha-hdr { background: #22c55e; }
     .pricing-hdr { background: #3b82f6; }
     .risk-hdr { background: #ef4444; }
-    .alpha-hdr { background: #22c55e; }
 
     /* Round Divider */
     .round-divider {
@@ -614,7 +614,7 @@
     private CancellationTokenSource? cts;
 
     private readonly List<RoundState> roundStates = new();
-    private static readonly string[] agentOrder = ["Pricing Quant", "Risk Quant", "Alpha Quant"];
+    private static readonly string[] agentOrder = ["Alpha Quant", "Pricing Quant", "Risk Quant"];
 
     private readonly string[] sampleTopics =
     [
@@ -626,7 +626,7 @@
 
     private void SetTopic(string topic) => topicText = topic;
 
-    private async Task StartResearch()
+    private async Task StartTurn()
     {
         if (string.IsNullOrWhiteSpace(topicText) || isRunning)
             return;
@@ -644,7 +644,7 @@
 
         try
         {
-            await foreach (var evt in ResearchService.StreamResearchAsync(topicText, cts.Token))
+            await foreach (var evt in TurnService.StreamTurnAsync(topicText, cts.Token))
             {
                 HandleEvent(evt);
                 StateHasChanged();
@@ -675,7 +675,7 @@
         return state;
     }
 
-    private void HandleEvent(ResearchEvent evt)
+    private void HandleEvent(TurnEvent evt)
     {
         switch (evt.Type)
         {
@@ -739,7 +739,7 @@
     {
         return roundNumber == 1
             ? topicText
-            : $"Synthesizing round {roundNumber} responses...";
+            : $"Validating turn {roundNumber} responses...";
     }
 
     private static string FormatContent(string content)

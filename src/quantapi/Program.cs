@@ -1,4 +1,3 @@
-using QuantLib.Agents;
 using QuantLib.Agents.Turn;
 using QuantLib.Agents.Quants;
 using QuantLib.Agents.Compare;
@@ -62,7 +61,7 @@ AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
 // ──────────────────────────────────────────────────────────
-// Research SSE streaming endpoint
+// Debate SSE streaming endpoint (fan-out parallel)
 // ──────────────────────────────────────────────────────────
 var jsonOptions = new JsonSerializerOptions
 {
@@ -70,10 +69,10 @@ var jsonOptions = new JsonSerializerOptions
     Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
 };
 
-app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext) =>
+async Task HandleDebate(DebateRequest request, HttpContext httpContext)
 {
     var sanitizedTopic = request.Topic.ReplaceLineEndings(string.Empty);
-    logger.LogInformation("Research request: {Topic}", sanitizedTopic);
+    logger.LogInformation("Debate request: {Topic}", sanitizedTopic);
 
     httpContext.Response.ContentType = "text/event-stream";
     httpContext.Response.Headers.CacheControl = "no-cache";
@@ -81,10 +80,10 @@ app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext
 
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
-    var orchestrator = new QuantOrchestrator(
+    var orchestrator = new DebateOrchestrator(
         apiProjectClient,
         apiDeploymentName,
-        loggerFactory.CreateLogger<QuantOrchestrator>(),
+        loggerFactory.CreateLogger<DebateOrchestrator>(),
         searchConnectionId,
         searchIndexName);
 
@@ -97,7 +96,10 @@ app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext
 
     await httpContext.Response.WriteAsync("data: [DONE]\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
-});
+}
+
+app.MapPost("/debate", HandleDebate);
+app.MapPost("/research", HandleDebate);
 
 // ──────────────────────────────────────────────────────────
 // Quant turn-based sequential analysis endpoint
@@ -113,10 +115,10 @@ app.MapPost("/turn", async (TurnRequest request, HttpContext httpContext) =>
 
     var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
     var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
-    var turnOrchestrator = new QuantTurnOrchestrator(
+    var turnOrchestrator = new TurnOrchestrator(
         apiProjectClient,
         apiDeploymentName,
-        loggerFactory.CreateLogger<QuantTurnOrchestrator>(),
+        loggerFactory.CreateLogger<TurnOrchestrator>(),
         searchConnectionId,
         searchIndexName);
 
@@ -171,5 +173,6 @@ await app.RunAsync();
 
 record ChatRequest(string Message);
 record TurnRequest(string Topic);
+record DebateRequest(string Topic);
 record ResearchRequest(string Topic);
 record CompareRequest(string Topic);

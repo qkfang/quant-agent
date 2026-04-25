@@ -4,29 +4,32 @@ using quantweb.Models;
 
 namespace quantweb.Services;
 
-public class MultiModelDebateService : IMultiModelDebateService
+public interface ITurnService
 {
-    private static readonly IReadOnlyList<string> AgentNames = ["Pricing Quant", "Risk Quant", "Alpha Quant"];
+    IAsyncEnumerable<TurnEvent> StreamTurnAsync(
+        string topic,
+        CancellationToken cancellationToken = default);
+}
+
+public class TurnService : ITurnService
+{
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<TurnService> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<MultiModelDebateService> _logger;
-
-    public MultiModelDebateService(HttpClient httpClient, ILogger<MultiModelDebateService> logger)
+    public TurnService(HttpClient httpClient, ILogger<TurnService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
     }
 
-    public IReadOnlyList<string> GetAvailableAgents() => AgentNames;
-
-    public async IAsyncEnumerable<DebateMessage> RunDebateAsync(
-        string query,
+    public async IAsyncEnumerable<TurnEvent> StreamTurnAsync(
+        string topic,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "research")
+        var request = new HttpRequestMessage(HttpMethod.Post, "turn")
         {
-            Content = JsonContent.Create(new { topic = query })
+            Content = JsonContent.Create(new { topic })
         };
         request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
 
@@ -45,15 +48,20 @@ public class MultiModelDebateService : IMultiModelDebateService
             var line = await reader.ReadLineAsync(cancellationToken);
             if (line is null) break;
             if (string.IsNullOrEmpty(line)) continue;
+
             if (!line.StartsWith("data: ")) continue;
-
             var data = line["data: ".Length..];
-            if (data == "[DONE]") yield break;
 
-            ResearchEvent? evt = null;
+            if (data == "[DONE]")
+            {
+                _logger.LogInformation("Turn stream completed");
+                yield break;
+            }
+
+            TurnEvent? evt = null;
             try
             {
-                evt = JsonSerializer.Deserialize<ResearchEvent>(data, JsonOptions);
+                evt = JsonSerializer.Deserialize<TurnEvent>(data, JsonOptions);
             }
             catch (JsonException ex)
             {
@@ -62,12 +70,7 @@ public class MultiModelDebateService : IMultiModelDebateService
 
             if (evt is not null)
             {
-                yield return new DebateMessage
-                {
-                    AgentName = evt.AgentName,
-                    Content = evt.Message,
-                    Timestamp = evt.Timestamp
-                };
+                yield return evt;
             }
         }
     }
