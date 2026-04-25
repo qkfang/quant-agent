@@ -12,7 +12,7 @@ param bingApiKey string = ''
 resource aiHub 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
   name: name
   location: location
-  tags: tags
+  tags: union(tags, { securityControl: 'Ignore' })
   identity: {
     type: 'SystemAssigned'
   }
@@ -192,6 +192,7 @@ output gpt41DeploymentName string = gpt41Deployment.name
 output projectName string = aiProject.name
 output location string = location
 output principalId string = aiHub.identity.principalId
+output projectPrincipalId string = aiProject.identity.principalId
 output aiSearchConnectionName string = aiSearchEndpoint != '' ? aiSearchConnection.name : ''
 output aiSearchProjectConnectionName string = aiSearchEndpoint != '' ? aiSearchProjectConnection.name : ''
 output bingProjectConnectionName string = bingResourceId != '' ? bingSearchProjectConnection.name : ''

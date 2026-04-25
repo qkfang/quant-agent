@@ -141,6 +141,27 @@ resource foundrySearchServiceContributor 'Microsoft.Authorization/roleAssignment
   }
 }
 
+// ── Role assignments: Foundry Project ↔ AI Search ────────────────────────────
+resource foundryProjectSearchIndexDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(searchResource.id, '${foundryName}-project', searchIndexDataReaderRoleId)
+  scope: searchResource
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', searchIndexDataReaderRoleId)
+    principalId: azureFoundry.outputs.projectPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource foundryProjectSearchServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(searchResource.id, '${foundryName}-project', searchServiceContributorRoleId)
+  scope: searchResource
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', searchServiceContributorRoleId)
+    principalId: azureFoundry.outputs.projectPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ── Role assignments: API App → Foundry ──────────────────────────────────────
 var cognitiveServicesOpenAIUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 var cognitiveServicesUserRoleId = 'a97b65f3-24c7-4388-baec-2e87135dc908'
