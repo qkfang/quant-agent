@@ -118,7 +118,9 @@ public class QuantOrchestrator
 
     private static string Truncate(string text, int maxLength)
     {
-        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+        if (text.Length <= maxLength)
             return text;
         return text[..maxLength] + "...";
     }

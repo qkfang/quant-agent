@@ -89,7 +89,7 @@
                 <div class="grid-cell orch-cell">
                     <div class="msg msg-input fade-in">
                         <span class="msg-label">📥 INPUT</span>
-                        <div class="msg-body">@((MarkupString)FormatContent(round.RoundNumber == 1 ? topicText : $"Synthesizing round {round.RoundNumber} responses..."))</div>
+                        <div class="msg-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
                     </div>
                 </div>
                 @foreach (var agentName in agentOrder)
@@ -113,7 +113,7 @@
                     {
                         <div class="msg msg-waiting fade-in">
                             <span class="msg-label">⏳ WAITING</span>
-                            <div class="msg-body">Collecting @round.AgentsCompleted / 3 agent responses...</div>
+                            <div class="msg-body">Collecting @round.AgentsCompleted / @agentOrder.Length agent responses...</div>
                         </div>
                     }
                     else if (round.HasAgentsStarted)
@@ -733,6 +733,13 @@
                 errorMessage = evt.Message;
                 break;
         }
+    }
+
+    private string GetOrchestratorInputLabel(int roundNumber)
+    {
+        return roundNumber == 1
+            ? topicText
+            : $"Synthesizing round {roundNumber} responses...";
     }
 
     private static string FormatContent(string content)
