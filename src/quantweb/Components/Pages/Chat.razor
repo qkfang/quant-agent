@@ -194,14 +194,25 @@
 
             await foreach (var evt in ChatService.StreamChatAsync(selectedAgent, userMessage, history, cts.Token))
             {
-                if (evt.Type == "AgentResponse")
+                if (evt.Type == "AgentDelta")
                 {
-                    var thinkingMsg = messages.LastOrDefault(m => m.IsThinking);
+                    var thinkingMsg = messages.LastOrDefault(m => !m.IsUser);
                     if (thinkingMsg != null)
                     {
                         thinkingMsg.IsThinking = false;
-                        thinkingMsg.Content = evt.Message;
-                        thinkingMsg.Timestamp = evt.Timestamp;
+                        thinkingMsg.Content += evt.Delta;
+                    }
+                    StateHasChanged();
+                }
+                else if (evt.Type == "AgentResponse")
+                {
+                    var lastAgentMsg = messages.LastOrDefault(m => !m.IsUser);
+                    if (lastAgentMsg != null)
+                    {
+                        lastAgentMsg.IsThinking = false;
+                        if (string.IsNullOrEmpty(lastAgentMsg.Content))
+                            lastAgentMsg.Content = evt.Message;
+                        lastAgentMsg.Timestamp = evt.Timestamp;
                     }
 
                     conversationHistory.Add(new ChatMessageItem { Role = "user", Content = userMessage });

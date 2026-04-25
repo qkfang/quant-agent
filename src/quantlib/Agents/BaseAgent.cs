@@ -4,6 +4,7 @@ using Azure.AI.Projects.Agents;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace QuantLib.Agents;
 
@@ -84,6 +85,45 @@ public abstract class BaseAgent
         var citations = ExtractCitations(result);
 
         return new AgentResult(text, citations);
+    }
+
+    public async IAsyncEnumerable<string> RunStreamingAsync(string message, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var sw = Stopwatch.StartNew();
+
+        CreateResponseOptions nextOptions = new()
+        {
+            InputItems = { ResponseItem.CreateUserMessageItem(message) }
+        };
+
+        while (true)
+        {
+            var pendingApprovals = new List<string>();
+            ResponseResult? completedResponse = null;
+
+            await foreach (var update in _responseClient.CreateResponseStreamingAsync(nextOptions, cancellationToken).WithCancellation(cancellationToken))
+            {
+                if (update is StreamingResponseOutputTextDeltaUpdate delta)
+                    yield return delta.Delta;
+                else if (update is StreamingResponseOutputItemDoneUpdate itemDone && itemDone.Item is McpToolCallApprovalRequestItem mcpCall)
+                {
+                    _logger.LogInformation("Auto-approving MCP tool call on {ServerLabel}", mcpCall.ServerLabel);
+                    pendingApprovals.Add(mcpCall.Id);
+                }
+                else if (update is StreamingResponseCompletedUpdate done)
+                    completedResponse = done.Response;
+            }
+
+            if (pendingApprovals.Count == 0)
+                break;
+
+            nextOptions = new CreateResponseOptions { PreviousResponseId = completedResponse!.Id };
+            foreach (var id in pendingApprovals)
+                nextOptions.InputItems.Add(ResponseItem.CreateMcpApprovalResponseItem(id, approved: true));
+        }
+
+        sw.Stop();
+        _logger.LogInformation("Agent {AgentId} streaming completed in {Duration}ms", _agentId, sw.ElapsedMilliseconds);
     }
 
     private IReadOnlyList<SearchCitation> ExtractCitations(ResponseResult? result)

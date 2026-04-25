@@ -207,10 +207,16 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(startEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
-    AgentResult response;
+    var fullText = new System.Text.StringBuilder();
     try
     {
-        response = await agent.RunAsync(prompt);
+        await foreach (var delta in agent.RunStreamingAsync(prompt, httpContext.RequestAborted))
+        {
+            fullText.Append(delta);
+            var deltaEvent = new { type = "AgentDelta", agentName = agent.Name, delta };
+            await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(deltaEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
+            await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+        }
     }
     catch (Exception ex)
     {
@@ -222,7 +228,7 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
         return;
     }
 
-    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = response.Text, timestamp = DateTime.UtcNow };
+    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = fullText.ToString(), timestamp = DateTime.UtcNow };
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(responseEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
