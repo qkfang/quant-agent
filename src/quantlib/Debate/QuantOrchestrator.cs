@@ -254,12 +254,29 @@ public class QuantOrchestrator
         }
         sb.AppendLine("=== END CURRENT ROUND ===");
         sb.AppendLine();
-        sb.AppendLine("Summarize the views from all agents. Identify areas of agreement, disagreement, and gaps.");
-        sb.AppendLine("If all agents substantially agree on the key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
-        sb.AppendLine("If there are still significant disagreements or gaps, identify them clearly so agents can address them in the next round.");
+        sb.AppendLine("Strictly evaluate every opinion from all agents in this round. For EACH opinion:");
+        sb.AppendLine("- Assess the supporting evidence and mark the opinion as:");
+        sb.AppendLine("  ✅ VALID - Evidence is strong and reasoning is sound");
+        sb.AppendLine("  ❌ INVALID - Evidence is weak, flawed, or contradicted by stronger counter-evidence");
+        sb.AppendLine("  ⚠️ PENDING - Evidence is inconclusive; needs more data in the next round");
+        sb.AppendLine();
+
+        if (previousRounds.Count > 0)
+        {
+            sb.AppendLine("IMPORTANT: Compare opinions in this round against opinions from previous rounds.");
+            sb.AppendLine("- Track which opinions changed status (e.g., PENDING → VALID, VALID → INVALID)");
+            sb.AppendLine("- Note if agents revised or dropped previous opinions and whether the revision is justified");
+            sb.AppendLine("- Maintain a running Opinion Ledger that shows how each opinion evolved across rounds");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("Present your evaluation under the heading 'Opinion Ledger' with columns: Agent, Opinion, Status, Reasoning.");
+        sb.AppendLine();
+        sb.AppendLine("If all key opinions are marked VALID and agents agree, include the exact marker [CONSENSUS_REACHED] in your response.");
+        sb.AppendLine("If PENDING or INVALID opinions remain on critical topics, clearly state what evidence is needed.");
         sb.AppendLine();
         sb.AppendLine("Additionally, pose 2-3 targeted debate questions for the agents to address in the next round.");
-        sb.AppendLine("These should challenge assumptions, probe disagreements, or explore analytical gaps.");
+        sb.AppendLine("Focus on challenging INVALID or PENDING opinions and requesting stronger evidence.");
         sb.AppendLine("Format them clearly under a 'Debate Questions' heading.");
 
         return sb.ToString();
@@ -284,7 +301,21 @@ public class QuantOrchestrator
         }
         sb.AppendLine("=== END DISCUSSION ===");
         sb.AppendLine();
-        sb.AppendLine("Produce a comprehensive final analysis report for the user. Synthesize all perspectives (pricing, risk, alpha) into a cohesive assessment. Include key findings, risk considerations, opportunities, and actionable recommendations.");
+        sb.AppendLine("Produce a comprehensive final analysis report. Structure the report as follows:");
+        sb.AppendLine();
+        sb.AppendLine("### Final Opinion Ledger");
+        sb.AppendLine("List EVERY opinion from all rounds with its final status (✅ VALID or ❌ INVALID).");
+        sb.AppendLine("Format: | Agent | Opinion | Final Status | Reasoning |");
+        sb.AppendLine();
+        sb.AppendLine("### Validated Conclusions");
+        sb.AppendLine("Synthesize only the ✅ VALID opinions into actionable conclusions.");
+        sb.AppendLine("Group by theme (pricing, risk, alpha) and provide clear recommendations.");
+        sb.AppendLine();
+        sb.AppendLine("### Rejected Opinions");
+        sb.AppendLine("List all ❌ INVALID opinions with the reason they were rejected.");
+        sb.AppendLine();
+        sb.AppendLine("### Recommendations");
+        sb.AppendLine("Provide actionable recommendations based solely on validated opinions.");
 
         return sb.ToString();
     }
