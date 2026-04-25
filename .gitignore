@@ -33,7 +33,7 @@ ScaffoldingReadMe.txt
 
 # Node / frontend
 node_modules/
-dist/
+!wwwroot/**/dist/
 .env
 .env.local
 .env.*.local
