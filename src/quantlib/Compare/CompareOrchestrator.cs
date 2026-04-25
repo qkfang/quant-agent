@@ -88,7 +88,7 @@ public class CompareOrchestrator
                 if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is CompareResponse response)
                 {
                     responses.Add(response);
-                    yield return CompareEvent.Completed(round, response.ModelName, response.DeploymentName, response.Message);
+                    yield return CompareEvent.Completed(round, response.ModelName, response.DeploymentName, response.Message, response.Citations);
                 }
                 else if (evt is WorkflowErrorEvent errorEvt)
                 {
@@ -103,7 +103,8 @@ public class CompareOrchestrator
             }
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
-            var summary = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summary = summaryResult.Text;
             rounds.Add(new CompareRound(round, responses, summary));
 
             yield return CompareEvent.Summary(round, summary);
@@ -122,8 +123,8 @@ public class CompareOrchestrator
 
         yield return CompareEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalReport = await _orchestrator.RunAsync(finalPrompt);
-        yield return CompareEvent.FinalCompleted(finalReport);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt);
+        yield return CompareEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
     }
 
     private static string Truncate(string text, int maxLength)
@@ -193,7 +194,8 @@ public class CompareOrchestrator
             Console.WriteLine("  \u001b[33m⟶ Orchestrator comparing model outputs...\u001b[0m");
             Console.WriteLine();
 
-            var summary = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summary = summaryResult.Text;
             rounds.Add(new CompareRound(round, responses, summary));
 
             Console.WriteLine($"  \u001b[33m┌─ [Orchestrator Comparison - Round {round}] ─┐\u001b[0m");
@@ -219,9 +221,9 @@ public class CompareOrchestrator
         Console.WriteLine(new string('═', 62));
 
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalReport = await _orchestrator.RunAsync(finalPrompt);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt);
 
-        Console.WriteLine($"\u001b[36m{finalReport}\u001b[0m");
+        Console.WriteLine($"\u001b[36m{finalResult.Text}\u001b[0m");
         Console.WriteLine();
         Console.WriteLine(new string('═', 62));
         Console.WriteLine("  Workflow completed.");

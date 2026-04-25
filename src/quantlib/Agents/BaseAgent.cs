@@ -7,6 +7,10 @@ using System.Diagnostics;
 
 namespace QuantLib.Agents;
 
+public record SearchCitation(string Title, string Url);
+
+public record AgentResult(string Text, IReadOnlyList<SearchCitation> Citations);
+
 public abstract class BaseAgent
 {
     protected readonly ProjectResponsesClient _responseClient;
@@ -46,7 +50,7 @@ public abstract class BaseAgent
         _responseClient = aiProjectClient.ProjectOpenAIClient.GetProjectResponsesClientForAgent(agentVersion.Name);
     }
 
-    public async Task<string> RunAsync(string message)
+    public async Task<AgentResult> RunAsync(string message)
     {
         var sw = Stopwatch.StartNew();
 
@@ -76,6 +80,53 @@ public abstract class BaseAgent
         sw.Stop();
         _logger.LogInformation("Agent {AgentId} completed in {Duration}ms", _agentId, sw.ElapsedMilliseconds);
 
-        return result?.GetOutputText() ?? string.Empty;
+        var text = result?.GetOutputText() ?? string.Empty;
+        var citations = ExtractCitations(result);
+
+        return new AgentResult(text, citations);
+    }
+
+    private IReadOnlyList<SearchCitation> ExtractCitations(ResponseResult? result)
+    {
+        var citations = new List<SearchCitation>();
+        if (result is null) return citations;
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in result.OutputItems)
+        {
+            if (item is not MessageResponseItem messageItem) continue;
+
+            foreach (var part in messageItem.Content)
+            {
+                if (part.OutputTextAnnotations is null) continue;
+
+                foreach (var annotation in part.OutputTextAnnotations)
+                {
+                    if (annotation is UriCitationMessageAnnotation uriCitation)
+                    {
+                        var url = uriCitation.Uri?.ToString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(url) && seen.Add(url))
+                        {
+                            citations.Add(new SearchCitation(
+                                uriCitation.Title ?? string.Empty,
+                                url));
+                        }
+                    }
+                    else if (annotation is FileCitationMessageAnnotation fileCitation)
+                    {
+                        var fileIdentifier = fileCitation.FileId ?? fileCitation.Filename ?? string.Empty;
+                        if (!string.IsNullOrEmpty(fileIdentifier) && seen.Add(fileIdentifier))
+                        {
+                            citations.Add(new SearchCitation(
+                                fileCitation.Filename ?? fileCitation.FileId ?? string.Empty,
+                                string.Empty));
+                        }
+                    }
+                }
+            }
+        }
+
+        return citations;
     }
 }

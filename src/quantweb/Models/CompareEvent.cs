@@ -9,6 +9,7 @@ public class CompareEvent
     public string Message { get; set; } = string.Empty;
     public string InputMessage { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public List<SearchCitation>? Citations { get; set; }
 
     public string CssClass => AgentName switch
     {

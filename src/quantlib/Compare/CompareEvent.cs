@@ -1,3 +1,5 @@
+using QuantLib.Agents;
+
 namespace QuantLib.Agents.Compare;
 
 public enum CompareEventType
@@ -20,7 +22,8 @@ public record CompareEvent(
     string Specialty,
     string Message,
     DateTime Timestamp,
-    string InputMessage = ""
+    string InputMessage = "",
+    IReadOnlyList<SearchCitation>? Citations = null
 )
 {
     public static CompareEvent RoundStarted(int round)
@@ -29,8 +32,8 @@ public record CompareEvent(
     public static CompareEvent Started(int round, string agentName, string specialty, string inputMessage = "")
         => new(CompareEventType.AgentStarted, round, agentName, specialty, "", DateTime.UtcNow, inputMessage);
 
-    public static CompareEvent Completed(int round, string agentName, string specialty, string message)
-        => new(CompareEventType.AgentCompleted, round, agentName, specialty, message, DateTime.UtcNow);
+    public static CompareEvent Completed(int round, string agentName, string specialty, string message, IReadOnlyList<SearchCitation>? citations = null)
+        => new(CompareEventType.AgentCompleted, round, agentName, specialty, message, DateTime.UtcNow, "", citations);
 
     public static CompareEvent Summary(int round, string message)
         => new(CompareEventType.OrchestratorSummary, round, "Orchestrator", "", message, DateTime.UtcNow);
@@ -44,8 +47,8 @@ public record CompareEvent(
     public static CompareEvent FinalStarted()
         => new(CompareEventType.FinalReportStarted, 0, "Orchestrator", "", "", DateTime.UtcNow);
 
-    public static CompareEvent FinalCompleted(string message)
-        => new(CompareEventType.FinalReportCompleted, 0, "Orchestrator", "", message, DateTime.UtcNow);
+    public static CompareEvent FinalCompleted(string message, IReadOnlyList<SearchCitation>? citations = null)
+        => new(CompareEventType.FinalReportCompleted, 0, "Orchestrator", "", message, DateTime.UtcNow, "", citations);
 
     public static CompareEvent ErrorEvent(int round, string message)
         => new(CompareEventType.Error, round, "", "", message, DateTime.UtcNow);
