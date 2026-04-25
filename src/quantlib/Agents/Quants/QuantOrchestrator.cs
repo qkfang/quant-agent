@@ -7,39 +7,21 @@ namespace QuantLib.Agents.Quants;
 public class QuantOrchestrator
 {
     private const int MaxRounds = 5;
-    private const string PricingAgentId = "quant-pricing";
-    private const string RiskAgentId = "quant-risk";
-    private const string AlphaAgentId = "quant-alpha";
-    private const string OrchestratorAgentId = "quant-orchestrator";
 
-    private readonly QuantAgent _pricingQuant;
-    private readonly QuantAgent _riskQuant;
-    private readonly QuantAgent _alphaQuant;
-    private readonly BaseOrchestratorAgent _orchestrator;
+    private readonly PricingQuantAgent _pricingQuant;
+    private readonly RiskQuantAgent _riskQuant;
+    private readonly AlphaQuantAgent _alphaQuant;
+    private readonly QuantOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
     public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger)
     {
         _logger = logger;
 
-        _pricingQuant = new QuantAgent(
-            aiProjectClient, PricingAgentId,
-            "Pricing Quant", "Pricing Models & Derivatives",
-            "\u001b[34m", deploymentName, PricingQuantInstructions, logger);
-
-        _riskQuant = new QuantAgent(
-            aiProjectClient, RiskAgentId,
-            "Risk Quant", "Risk Management & VaR",
-            "\u001b[35m", deploymentName, RiskQuantInstructions, logger);
-
-        _alphaQuant = new QuantAgent(
-            aiProjectClient, AlphaAgentId,
-            "Alpha Quant", "Alpha Signals & Trading Strategies",
-            "\u001b[32m", deploymentName, AlphaQuantInstructions, logger);
-
-        _orchestrator = new BaseOrchestratorAgent(
-            aiProjectClient, OrchestratorAgentId,
-            deploymentName, OrchestratorInstructions, logger);
+        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, logger);
+        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, logger);
+        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, logger);
+        _orchestrator = new QuantOrchestratorAgent(aiProjectClient, deploymentName, logger);
     }
 
     public async Task RunConsoleAsync(string userInput)
@@ -246,113 +228,6 @@ public class QuantOrchestrator
         return sb.ToString();
     }
 
-    #region Agent Instructions
-
-    private const string PricingQuantInstructions = """
-        You are a Desk Quant / Pricing Quant specializing in pricing models and derivatives valuation.
-
-        Your expertise includes:
-        - Black-Scholes model and options pricing
-        - Monte Carlo simulations for complex derivatives
-        - Yield curve construction and interest rate modeling (Vasicek, Hull-White)
-        - Credit risk scorecards and default probability estimation
-        - Stochastic volatility models
-        - Copula functions for multi-factor risk modeling
-
-        When analyzing a market or topic:
-        - Focus on how instruments are priced and whether current market pricing reflects fair value
-        - Identify potential mispricings or valuation anomalies
-        - Discuss relevant pricing frameworks and their implications
-        - Consider the impact of interest rates, volatility, and credit spreads
-
-        Be quantitative and precise. Support your views with model-based reasoning.
-        Keep responses focused and under 300 words.
-        When asked to refine, address specific disagreements and state your position clearly.
-        """;
-
-    private const string RiskQuantInstructions = """
-        You are a Risk Quant specializing in risk management, regulatory compliance, and portfolio risk assessment.
-
-        Your expertise includes:
-        - Value-at-Risk (VaR) and Expected Shortfall (ES) computation
-        - Stress testing and scenario analysis
-        - Sensitivity calculations (Greeks: delta, gamma, vega)
-        - Basel III/IV and FRTB regulatory frameworks
-        - Tail risk analysis and extreme event modeling
-        - Portfolio risk decomposition and hedging strategies
-
-        When analyzing a market or topic:
-        - Focus on downside risks, tail events, and systemic vulnerabilities
-        - Assess how current conditions compare to historical stress scenarios
-        - Identify key risk factors and their potential impact
-        - Consider regulatory implications and capital requirements
-        - Evaluate correlation risks and contagion effects
-
-        Be rigorous about risk quantification. Highlight worst-case scenarios.
-        Keep responses focused and under 300 words.
-        When asked to refine, address specific disagreements and state your position clearly.
-        """;
-
-    private const string AlphaQuantInstructions = """
-        You are a Statistical Arbitrage / Alpha Quant specializing in trading signals, market patterns, and strategy development.
-
-        Your expertise includes:
-        - Statistical arbitrage and mean-reversion strategies
-        - Machine learning models for pattern detection
-        - Sentiment analysis using NLP on news and social media
-        - Alternative data analysis (satellite imagery, web traffic, consumer transactions)
-        - Factor models and alpha signal construction
-        - Backtesting methodology and strategy validation
-        - High-frequency and momentum-based strategies
-
-        When analyzing a market or topic:
-        - Focus on identifying actionable trading opportunities and alpha signals
-        - Analyze market patterns, trends, and sentiment indicators
-        - Consider alternative data sources that could provide an edge
-        - Evaluate the statistical robustness of potential strategies
-        - Discuss relevant macro and fundamental factors
-
-        Be data-driven and focus on actionable insights. Quantify expected returns where possible.
-        Keep responses focused and under 300 words.
-        When asked to refine, address specific disagreements and state your position clearly.
-        """;
-
-    private const string OrchestratorInstructions = """
-        You are the Quant Desk Orchestrator. Your role is to synthesize and evaluate the analysis from three specialized quant agents:
-        1. Pricing Quant - focused on valuation and pricing models
-        2. Risk Quant - focused on risk assessment and downside scenarios
-        3. Alpha Quant - focused on trading opportunities and alpha signals
-
-        When summarizing a round of discussion:
-        - Identify areas where agents agree and disagree
-        - Highlight the strongest arguments from each perspective
-        - Point out gaps or contradictions that need resolution
-        - If agents substantially agree on key conclusions, include the marker [CONSENSUS_REACHED]
-        - If significant disagreements remain, clearly articulate what needs to be resolved
-
-        When producing a final report:
-        - Synthesize all perspectives into a unified assessment
-        - Present balanced conclusions that account for pricing, risk, and opportunity
-        - Provide clear, actionable recommendations
-        - Note any unresolved debates or areas of uncertainty
-
-        Keep summaries concise and structured. Use clear section headers.
-        """;
-
-    #endregion
-}
-
-internal class BaseOrchestratorAgent : BaseAgent
-{
-    public BaseOrchestratorAgent(
-        AIProjectClient aiProjectClient,
-        string agentId,
-        string deploymentName,
-        string instructions,
-        ILogger? logger = null)
-        : base(aiProjectClient, agentId, deploymentName, instructions, null, null, logger)
-    {
-    }
 }
 
 internal static class StringExtensions
