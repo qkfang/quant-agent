@@ -29,4 +29,4 @@ jobs:
             --name 'quant-dev' \
             --resource-group 'rg-quant' \
             --template-file './main.bicep' \
-            --parameters './parameters.dev.json'
+            --parameters './main.bicepparam'
