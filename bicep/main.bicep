@@ -46,6 +46,16 @@ module bingSearch 'bing.bicep' = {
   }
 }
 
+// ── Monitoring ───────────────────────────────────────────────────────────────
+module monitoring 'monitoring.bicep' = {
+  name: 'monitoringDeployment'
+  params: {
+    name: baseName
+    location: location
+    tags: commonTags
+  }
+}
+
 // ── Web Apps ─────────────────────────────────────────────────────────────────
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${baseName}-asp'
@@ -209,3 +219,44 @@ resource userSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments
     principalType: principal.principalType
   }
 }]
+
+// ── Diagnostic Settings: Foundry → Log Analytics ─────────────────────────────
+resource foundryDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'foundry-diagnostics'
+  scope: foundryAccount
+  properties: {
+    workspaceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
+// ── App Insights Connection: Foundry Project ──────────────────────────────────
+resource foundryProjectRef 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' existing = {
+  parent: foundryAccount
+  name: '${foundryName}-project'
+}
+
+resource appInsightsProjectConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-10-01-preview' = {
+  parent: foundryProjectRef
+  name: 'app-insights-connection'
+  properties: {
+    authType: 'AAD'
+    category: 'AppInsights'
+    target: monitoring.outputs.appInsightsId
+    metadata: {
+      type: 'app_insights'
+      ResourceId: monitoring.outputs.appInsightsId
+    }
+  }
+}

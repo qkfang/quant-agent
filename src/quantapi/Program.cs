@@ -207,7 +207,20 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(startEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
-    var response = await agent.RunAsync(prompt);
+    AgentResult response;
+    try
+    {
+        response = await agent.RunAsync(prompt);
+    }
+    catch (Exception ex)
+    {
+        var errorEvent = new { type = "AgentError", agentName = agent.Name, error = ex.Message, timestamp = DateTime.UtcNow };
+        await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(errorEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
+        await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+        await httpContext.Response.WriteAsync("data: [DONE]\n\n", httpContext.RequestAborted);
+        await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+        return;
+    }
 
     var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = response, timestamp = DateTime.UtcNow };
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(responseEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
