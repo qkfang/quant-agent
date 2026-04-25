@@ -3,7 +3,47 @@ using Azure.AI.Projects.Agents;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using QuantAgent.Agents;
+using QuantAgent.Agents.Philosophers;
 
+// ──────────────────────────────────────────────────────────
+// Console debate mode: dotnet run -- --debate "your topic"
+// ──────────────────────────────────────────────────────────
+if (args.Length > 0 && args[0] == "--debate")
+{
+    var topic = args.Length > 1
+        ? string.Join(" ", args.Skip(1))
+        : "How can we ensure that AI benefits all of humanity?";
+
+    var config = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json", optional: false)
+        .AddJsonFile("appsettings.Development.json", optional: true)
+        .AddEnvironmentVariables()
+        .Build();
+
+    var endpoint = config["AZURE_AI_PROJECT_ENDPOINT"]
+        ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
+    var deploymentName = config["AZURE_AI_MODEL_DEPLOYMENT_NAME"]
+        ?? throw new InvalidOperationException("AZURE_AI_MODEL_DEPLOYMENT_NAME is not set.");
+    var tenantId = config["AZURE_TENANT_ID"];
+
+    var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+    {
+        TenantId = tenantId
+    });
+
+    AIProjectClient aiProjectClient = new(new Uri(endpoint), credential);
+
+    using var consoleLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+    var consoleLogger = consoleLoggerFactory.CreateLogger<PhilosopherDebate>();
+
+    var debate = new PhilosopherDebate(aiProjectClient, deploymentName, consoleLogger);
+    await debate.DebateConsoleAsync(topic);
+    return;
+}
+
+// ──────────────────────────────────────────────────────────
+// Web API mode (default): starts the ASP.NET Core server
+// ──────────────────────────────────────────────────────────
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenTelemetry().UseAzureMonitor();
@@ -30,17 +70,17 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-var endpoint = app.Configuration["AZURE_AI_PROJECT_ENDPOINT"]
+var apiEndpoint = app.Configuration["AZURE_AI_PROJECT_ENDPOINT"]
     ?? throw new InvalidOperationException("AZURE_AI_PROJECT_ENDPOINT is not set.");
-var deploymentName = app.Configuration["AZURE_AI_MODEL_DEPLOYMENT_NAME"]
+var apiDeploymentName = app.Configuration["AZURE_AI_MODEL_DEPLOYMENT_NAME"]
     ?? throw new InvalidOperationException("AZURE_AI_MODEL_DEPLOYMENT_NAME is not set.");
-var tenantId = app.Configuration["AZURE_TENANT_ID"];
+var apiTenantId = app.Configuration["AZURE_TENANT_ID"];
 var defaultCredential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 {
-    TenantId = tenantId
+    TenantId = apiTenantId
 });
 
-AIProjectClient aiProjectClient = new(new Uri(endpoint), defaultCredential);
+AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 
 // var apiMcpUrl = app.Configuration["API_INTG_MCP_URL"];
 
@@ -57,7 +97,7 @@ var fabricConnectionName = app.Configuration["FABRIC_CONNECTION_NAME"];
 Action<DeclarativeAgentDefinition>? insightFabricConfig = null;
 if (!string.IsNullOrEmpty(fabricConnectionName))
 {
-    var fabricConnection = aiProjectClient.Connections.GetConnection(fabricConnectionName);
+    var fabricConnection = apiProjectClient.Connections.GetConnection(fabricConnectionName);
     var fabricToolOption = new FabricDataAgentToolOptions
     {
         ProjectConnections = { new ToolProjectConnection(projectConnectionId: fabricConnection.Id) }
@@ -70,7 +110,7 @@ else
     logger.LogWarning("FABRIC_CONNECTION_NAME is not set. FxAgInsight will run without Fabric data agent.");
 }
 
-var insightAgent = new QuantAgentInsight(aiProjectClient, deploymentName, [], insightFabricConfig, loggerFactory.CreateLogger<QuantAgentInsight>());
+var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], insightFabricConfig, loggerFactory.CreateLogger<QuantAgentInsight>());
 
 app.MapPost("/insight", async (ChatRequest request) =>
 {
@@ -79,6 +119,19 @@ app.MapPost("/insight", async (ChatRequest request) =>
     return Results.Ok(new { response });
 });
 
+// ──────────────────────────────────────────────────────────
+// Philosopher debate API endpoint
+// ──────────────────────────────────────────────────────────
+app.MapPost("/debate", async (DebateRequest request) =>
+{
+    logger.LogInformation("Debate request: {Topic}", request.Topic);
+    var debate = new PhilosopherDebate(apiProjectClient, apiDeploymentName, loggerFactory.CreateLogger<PhilosopherDebate>());
+    var turns = await debate.DebateAsync(request.Topic);
+    return Results.Ok(new DebateResponse(request.Topic, turns));
+});
+
 await app.RunAsync();
 
 record ChatRequest(string Message);
+record DebateRequest(string Topic);
+record DebateResponse(string Topic, List<DebateTurn> Turns);
