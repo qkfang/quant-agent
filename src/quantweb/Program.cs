@@ -31,6 +31,14 @@ builder.Services.AddHttpClient<ICompareService, CompareService>(client =>
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 
+// Register chat service (direct agent conversation)
+builder.Services.AddHttpClient<IChatService, ChatService>(client =>
+{
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

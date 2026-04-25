@@ -31,6 +31,12 @@
             <h3>Turn</h3>
             <p>Sequential turn-based analysis. Each agent is called one by one, building on previous insights in a vertical flow.</p>
         </a>
+
+        <a href="chat" class="method-card chat">
+            <div class="method-icon">💬</div>
+            <h3>Chat</h3>
+            <p>Direct conversation with a specialist agent. Select Alpha, Pricing, or Risk quant for focused analysis with document references.</p>
+        </a>
     </div>
 
     <div class="agent-cards">
@@ -87,7 +93,7 @@
 
     .method-cards {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 1.25rem;
         margin-bottom: 2.5rem;
     }
@@ -112,6 +118,7 @@
     .method-card.debate { border-top-color: #667eea; }
     .method-card.compare { border-top-color: #f59e0b; }
     .method-card.turn { border-top-color: #22c55e; }
+    .method-card.chat { border-top-color: #8b5cf6; }
 
     .method-icon {
         font-size: 2.5rem;
@@ -176,7 +183,10 @@
     }
 
     @@media (max-width: 768px) {
-        .method-cards, .agent-cards {
+        .method-cards {
+            grid-template-columns: 1fr;
+        }
+        .agent-cards {
             grid-template-columns: 1fr;
         }
     }

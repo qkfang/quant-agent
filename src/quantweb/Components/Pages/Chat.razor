@@ -1,0 +1,616 @@
+@page "/chat"
+@using quantweb.Models
+@using quantweb.Services
+@inject IChatService ChatService
+@rendermode InteractiveServer
+
+<PageTitle>Chat</PageTitle>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>💬 Agent Chat</h1>
+        <p class="subtitle">Have a direct conversation with a specialist quant agent.</p>
+    </div>
+
+    <div class="agent-selector">
+        <label class="selector-label">Select Agent:</label>
+        <div class="agent-buttons">
+            <button class="agent-btn @(selectedAgent == "alpha" ? "active" : "") alpha"
+                    @onclick='() => SelectAgent("alpha")'
+                    disabled="@isProcessing">
+                <span class="agent-emoji">📈</span>
+                <span class="agent-name">Alpha Quant</span>
+                <span class="agent-desc">Trading Signals & Strategies</span>
+            </button>
+            <button class="agent-btn @(selectedAgent == "pricing" ? "active" : "") pricing"
+                    @onclick='() => SelectAgent("pricing")'
+                    disabled="@isProcessing">
+                <span class="agent-emoji">💰</span>
+                <span class="agent-name">Pricing Quant</span>
+                <span class="agent-desc">Pricing Models & Derivatives</span>
+            </button>
+            <button class="agent-btn @(selectedAgent == "risk" ? "active" : "") risk"
+                    @onclick='() => SelectAgent("risk")'
+                    disabled="@isProcessing">
+                <span class="agent-emoji">🛡️</span>
+                <span class="agent-name">Risk Quant</span>
+                <span class="agent-desc">Risk Management & VaR</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+        @if (messages.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>Select an agent above and start a conversation.</p>
+                <div class="sample-queries">
+                    <span class="sample-label">Try asking:</span>
+                    @foreach (var sample in GetSampleQueries())
+                    {
+                        <button class="sample-btn" @onclick="() => SetMessage(sample)" disabled="@isProcessing">@sample</button>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var msg in messages)
+            {
+                <div class="chat-msg @(msg.IsUser ? "user-msg" : "agent-msg") fade-in">
+                    @if (!msg.IsUser)
+                    {
+                        <div class="msg-avatar" style="background-color: @msg.AgentColor">@msg.Avatar</div>
+                    }
+                    <div class="msg-content">
+                        <div class="msg-header">
+                            <span class="msg-sender">@msg.Sender</span>
+                            <span class="msg-time">@msg.Timestamp.ToString("HH:mm")</span>
+                        </div>
+                        <div class="msg-body">
+                            @if (msg.IsThinking)
+                            {
+                                <div class="thinking-indicator">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                @((MarkupString)FormatContent(msg.Content))
+                            }
+                        </div>
+                    </div>
+                    @if (msg.IsUser)
+                    {
+                        <div class="msg-avatar user-avatar">👤</div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <div class="error-banner">
+            <strong>⚠️ Error:</strong> @errorMessage
+            <button class="dismiss-btn" @onclick="() => errorMessage = null">✕</button>
+        </div>
+    }
+
+    <div class="chat-input-area">
+        <textarea @bind="inputText"
+                  @bind:event="oninput"
+                  @onkeydown="HandleKeyDown"
+                  placeholder="@GetPlaceholder()"
+                  rows="2"
+                  disabled="@isProcessing"
+                  class="chat-input"></textarea>
+        <button class="btn-send" @onclick="SendMessage" disabled="@(isProcessing || string.IsNullOrWhiteSpace(inputText) || string.IsNullOrEmpty(selectedAgent))">
+            @if (isProcessing)
+            {
+                <span class="spinner"></span>
+            }
+            else
+            {
+                <span>➤</span>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    private string selectedAgent = "alpha";
+    private string inputText = string.Empty;
+    private string? errorMessage;
+    private bool isProcessing;
+    private List<ChatMessage> messages = new();
+    private List<ChatMessageItem> conversationHistory = new();
+    private CancellationTokenSource? cts;
+
+    private void SelectAgent(string agent)
+    {
+        if (selectedAgent != agent)
+        {
+            selectedAgent = agent;
+            messages.Clear();
+            conversationHistory.Clear();
+            errorMessage = null;
+        }
+    }
+
+    private void SetMessage(string message)
+    {
+        inputText = message;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(inputText) || string.IsNullOrEmpty(selectedAgent) || isProcessing)
+            return;
+
+        var userMessage = inputText.Trim();
+        inputText = string.Empty;
+        errorMessage = null;
+        isProcessing = true;
+
+        messages.Add(new ChatMessage
+        {
+            IsUser = true,
+            Sender = "You",
+            Content = userMessage,
+            Timestamp = DateTime.UtcNow
+        });
+
+        var agentInfo = GetAgentInfo(selectedAgent);
+        messages.Add(new ChatMessage
+        {
+            IsUser = false,
+            Sender = agentInfo.Name,
+            Avatar = agentInfo.Emoji,
+            AgentColor = agentInfo.Color,
+            IsThinking = true,
+            Content = string.Empty,
+            Timestamp = DateTime.UtcNow
+        });
+
+        StateHasChanged();
+
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            var history = conversationHistory.Count > 0 ? conversationHistory.ToList() : null;
+
+            await foreach (var evt in ChatService.StreamChatAsync(selectedAgent, userMessage, history, cts.Token))
+            {
+                if (evt.Type == "AgentResponse")
+                {
+                    var thinkingMsg = messages.LastOrDefault(m => m.IsThinking);
+                    if (thinkingMsg != null)
+                    {
+                        thinkingMsg.IsThinking = false;
+                        thinkingMsg.Content = evt.Message;
+                        thinkingMsg.Timestamp = evt.Timestamp;
+                    }
+
+                    conversationHistory.Add(new ChatMessageItem { Role = "user", Content = userMessage });
+                    conversationHistory.Add(new ChatMessageItem { Role = "assistant", Content = evt.Message });
+
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            messages.RemoveAll(m => m.IsThinking);
+        }
+        finally
+        {
+            isProcessing = false;
+            cts?.Dispose();
+            cts = null;
+            StateHasChanged();
+        }
+    }
+
+    private (string Name, string Emoji, string Color) GetAgentInfo(string agent) => agent switch
+    {
+        "alpha" => ("Alpha Quant", "📈", "#22c55e"),
+        "pricing" => ("Pricing Quant", "💰", "#3b82f6"),
+        "risk" => ("Risk Quant", "🛡️", "#ef4444"),
+        _ => ("Agent", "🤖", "#94a3b8")
+    };
+
+    private string GetPlaceholder() => selectedAgent switch
+    {
+        "alpha" => "Ask about trading signals, momentum strategies, alpha generation...",
+        "pricing" => "Ask about pricing models, derivatives valuation, yield curves...",
+        "risk" => "Ask about VaR, stress testing, risk management...",
+        _ => "Select an agent and type your message..."
+    };
+
+    private string[] GetSampleQueries() => selectedAgent switch
+    {
+        "alpha" => ["What momentum signals suggest for emerging markets?", "Analyze mean-reversion strategies in current volatility regime"],
+        "pricing" => ["How should we model implied volatility skew for tech options?", "Compare Monte Carlo vs analytical pricing for exotic derivatives"],
+        "risk" => ["What are the key tail risks in the current macro environment?", "How should we stress test a portfolio for rate shock scenarios?"],
+        _ => ["What is your analysis of current market conditions?"]
+    };
+
+    private string FormatContent(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return string.Empty;
+
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\*(.+?)\*", "<em>$1</em>");
+
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"【(\d+:\d+†.+?)】", "<sup class=\"citation\">[$1]</sup>");
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\[doc(\d+)\]", "<sup class=\"citation\">[doc$1]</sup>");
+
+        var lines = content.Split('\n');
+        var result = new System.Text.StringBuilder();
+        bool inList = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
+            {
+                if (!inList) { result.Append("<ul>"); inList = true; }
+                result.Append($"<li>{trimmed[2..]}</li>");
+            }
+            else
+            {
+                if (inList) { result.Append("</ul>"); inList = false; }
+                if (trimmed.StartsWith("# "))
+                    result.Append($"<h4>{trimmed[2..]}</h4>");
+                else if (trimmed.StartsWith("## "))
+                    result.Append($"<h5>{trimmed[3..]}</h5>");
+                else if (!string.IsNullOrWhiteSpace(trimmed))
+                    result.Append($"<p>{line}</p>");
+            }
+        }
+        if (inList) result.Append("</ul>");
+
+        return result.ToString();
+    }
+
+    private class ChatMessage
+    {
+        public bool IsUser { get; set; }
+        public string Sender { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Avatar { get; set; } = string.Empty;
+        public string AgentColor { get; set; } = string.Empty;
+        public bool IsThinking { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+}
+
+<style>
+    .chat-container {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 100px);
+        padding: 1rem;
+    }
+
+    .chat-header {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .chat-header h1 {
+        font-size: 2rem;
+        margin-bottom: 0.25rem;
+        color: #1a1a2e;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .agent-selector {
+        margin-bottom: 1rem;
+    }
+
+    .selector-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .agent-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+
+    .agent-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .agent-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .agent-btn.active.alpha { border-color: #22c55e; background: #f0fdf4; }
+    .agent-btn.active.pricing { border-color: #3b82f6; background: #eff6ff; }
+    .agent-btn.active.risk { border-color: #ef4444; background: #fef2f2; }
+
+    .agent-emoji { font-size: 1.5rem; }
+    .agent-name { font-weight: 600; font-size: 0.85rem; color: #1a1a2e; }
+    .agent-desc { font-size: 0.7rem; color: #888; }
+
+    .chat-area {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fafafa;
+        margin-bottom: 0.75rem;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #999;
+    }
+
+    .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+    .sample-queries {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .sample-label {
+        font-size: 0.8rem;
+        color: #888;
+        width: 100%;
+        text-align: center;
+    }
+
+    .sample-btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 20px;
+        background: white;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .sample-btn:hover:not(:disabled) {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .chat-msg {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .user-msg { justify-content: flex-end; }
+    .agent-msg { justify-content: flex-start; }
+
+    .msg-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .user-avatar {
+        background: #667eea !important;
+    }
+
+    .msg-content {
+        max-width: 70%;
+        min-width: 200px;
+    }
+
+    .user-msg .msg-content {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 16px 16px 0 16px;
+        padding: 0.75rem 1rem;
+    }
+
+    .agent-msg .msg-content {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px 16px 16px 0;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .msg-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .msg-sender { font-weight: 600; }
+    .user-msg .msg-sender { color: rgba(255,255,255,0.9); }
+    .agent-msg .msg-sender { color: #333; }
+
+    .msg-time { color: rgba(150,150,150,0.8); }
+    .user-msg .msg-time { color: rgba(255,255,255,0.7); }
+
+    .msg-body {
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .msg-body p { margin: 0.3rem 0; }
+    .msg-body h4 { margin: 0.5rem 0 0.2rem; font-size: 0.95rem; }
+    .msg-body h5 { margin: 0.4rem 0 0.2rem; font-size: 0.9rem; }
+    .msg-body ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+    .msg-body li { margin-bottom: 0.2rem; }
+
+    .msg-body strong { font-weight: 600; }
+
+    .citation {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        font-size: 0.6rem;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        margin-left: 2px;
+        cursor: help;
+        vertical-align: super;
+    }
+
+    .user-msg .citation {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .thinking-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 0.5rem 0;
+    }
+
+    .thinking-indicator .dot {
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+        animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .thinking-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    .chat-input-area {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .chat-input {
+        flex: 1;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        resize: none;
+        outline: none;
+        font-family: inherit;
+        transition: border-color 0.2s;
+    }
+
+    .chat-input:focus { border-color: #667eea; }
+
+    .btn-send {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn-send:hover:not(:disabled) { transform: scale(1.05); }
+    .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-banner {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        color: #dc2626;
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dismiss-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #dc2626;
+        font-size: 1rem;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 768px) {
+        .agent-buttons { grid-template-columns: 1fr; }
+        .msg-content { max-width: 85%; }
+    }
+</style>
