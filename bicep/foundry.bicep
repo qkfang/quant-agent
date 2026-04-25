@@ -108,6 +108,7 @@ resource aiSearchConnection 'Microsoft.CognitiveServices/accounts/connections@20
     metadata: {
       type: 'azure_ai_search'
       ResourceId: aiSearchResourceId
+      useWorkspaceManagedIdentity: 'false'
     }
   }
 }
@@ -122,6 +123,7 @@ resource aiSearchProjectConnection 'Microsoft.CognitiveServices/accounts/project
     metadata: {
       type: 'azure_ai_search'
       ResourceId: aiSearchResourceId
+      useWorkspaceManagedIdentity: 'false'
     }
   }
 }
@@ -195,5 +197,6 @@ output principalId string = aiHub.identity.principalId
 output projectPrincipalId string = aiProject.identity.principalId
 output aiSearchConnectionName string = aiSearchEndpoint != '' ? aiSearchConnection.name : ''
 output aiSearchProjectConnectionName string = aiSearchEndpoint != '' ? aiSearchProjectConnection.name : ''
+output aiSearchProjectConnectionId string = aiSearchEndpoint != '' ? aiSearchProjectConnection.id : ''
 output bingProjectConnectionName string = bingResourceId != '' ? bingSearchProjectConnection.name : ''
 output bingProjectConnectionId string = bingResourceId != '' ? bingSearchProjectConnection.id : ''

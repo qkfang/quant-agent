@@ -27,7 +27,7 @@ public class QuantAgent : BaseAgent
             {
                 if (!string.IsNullOrWhiteSpace(searchConnectionId) && !string.IsNullOrWhiteSpace(searchIndexName))
                     agentDef.Tools.Add(new AzureAISearchTool(new AzureAISearchToolOptions([
-                        new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName }
+                        new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName, QueryType = AzureAISearchQueryType.Simple, TopK = 5 }
                     ])));
 
                 if (!string.IsNullOrWhiteSpace(bingConnectionId))

@@ -185,7 +185,8 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
 // ──────────────────────────────────────────────────────────
 app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =>
 {
-    logger.LogInformation("Chat request to agent: {Agent}", request.Agent);
+    logger.LogInformation("Chat request payload: Agent={Agent}, Message={Message}, HistoryCount={HistoryCount}",
+        request.Agent, request.Message, request.History?.Count ?? 0);
 
     httpContext.Response.ContentType = "text/event-stream";
     httpContext.Response.Headers.CacheControl = "no-cache";
