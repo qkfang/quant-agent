@@ -7,15 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Register multi-model debate service
-builder.Services.AddHttpClient<IMultiModelDebateService, MultiModelDebateService>(client =>
-{
-    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
-    client.BaseAddress = new Uri(apiBaseUrl);
-    client.Timeout = TimeSpan.FromMinutes(10);
-});
-
-// Register research service
+// Register debate service (fan-out parallel analysis)
 builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
 {
     var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
@@ -23,7 +15,15 @@ builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 
-// Register compare service
+// Register turn service (sequential analysis)
+builder.Services.AddHttpClient<ITurnService, TurnService>(client =>
+{
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+
+// Register compare service (multi-model comparison)
 builder.Services.AddHttpClient<ICompareService, CompareService>(client =>
 {
     var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";

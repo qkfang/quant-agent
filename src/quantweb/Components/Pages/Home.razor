@@ -4,45 +4,53 @@
 
 <div class="home-container">
     <h1>🤖 Quants Agent</h1>
-    <h2>Multi-Model Scenario Analysis Platform</h2>
+    <h2>Multi-Agent Scenario Analysis Platform</h2>
 
     <div class="feature-description">
         <p>
-            Run queries across multiple AI models that take different perspectives and reason with each other — 
-            building out the end-to-end view of potential outcomes for your trading scenarios.
+            Run queries across multiple AI agents that take different perspectives and reason with each other — 
+            building out the end-to-end view of potential outcomes for your analysis scenarios.
         </p>
     </div>
 
+    <div class="method-cards">
+        <a href="debate" class="method-card debate">
+            <div class="method-icon">⚡</div>
+            <h3>Debate</h3>
+            <p>Fan-out parallel analysis. All agents analyze concurrently, then an orchestrator evaluates opinions across rounds until consensus is reached.</p>
+        </a>
+
+        <a href="compare" class="method-card compare">
+            <div class="method-icon">🔀</div>
+            <h3>Compare</h3>
+            <p>Multi-model comparison. The same topic is analyzed by different LLM models, then differences in reasoning and conclusions are compared.</p>
+        </a>
+
+        <a href="turn" class="method-card turn">
+            <div class="method-icon">🔄</div>
+            <h3>Turn</h3>
+            <p>Sequential turn-based analysis. Agents build on each other's insights in order (Alpha → Pricing → Risk), creating a layered view.</p>
+        </a>
+    </div>
+
     <div class="agent-cards">
-        <div class="agent-card bull">
-            <div class="agent-avatar">🐂</div>
-            <h3>Bull Analyst</h3>
-            <p>Identifies upside potential, momentum signals, and favorable market conditions. Quantifies bullish opportunities with data-driven reasoning.</p>
+        <div class="agent-card alpha">
+            <div class="agent-avatar">📈</div>
+            <h3>Alpha Quant</h3>
+            <p>Identifies alpha opportunities, momentum signals, and favorable market conditions with data-driven reasoning.</p>
         </div>
 
-        <div class="agent-card bear">
-            <div class="agent-avatar">🐻</div>
-            <h3>Bear Analyst</h3>
-            <p>Focuses on downside risks, potential pitfalls, and adverse scenarios. Ensures critical risks are not overlooked in the analysis.</p>
+        <div class="agent-card pricing">
+            <div class="agent-avatar">💰</div>
+            <h3>Pricing Quant</h3>
+            <p>Focuses on valuation models, pricing dynamics, and fair value assessments for instruments and strategies.</p>
         </div>
 
         <div class="agent-card risk">
             <div class="agent-avatar">🛡️</div>
-            <h3>Risk Analyst</h3>
-            <p>Evaluates risk-adjusted returns, hedging strategies, and position sizing. Provides the risk-optimal approach that balances opportunity with protection.</p>
+            <h3>Risk Quant</h3>
+            <p>Evaluates risk-adjusted returns, hedging strategies, and position sizing to balance opportunity with protection.</p>
         </div>
-
-        <div class="agent-card macro">
-            <div class="agent-avatar">🌍</div>
-            <h3>Macro Strategist</h3>
-            <p>Analyzes macroeconomic drivers, cross-asset correlations, and geopolitical impacts. Places scenarios within the broader economic context.</p>
-        </div>
-    </div>
-
-    <div class="cta-section">
-        <a href="debate" class="btn btn-primary btn-lg">
-            Start a Multi-Model Debate →
-        </a>
     </div>
 </div>
 
@@ -77,11 +85,57 @@
         line-height: 1.6;
     }
 
-    .agent-cards {
+    .method-cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 1.25rem;
         margin-bottom: 2.5rem;
+    }
+
+    .method-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-top: 4px solid #ddd;
+        text-align: center;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .method-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .method-card.debate { border-top-color: #667eea; }
+    .method-card.compare { border-top-color: #f59e0b; }
+    .method-card.turn { border-top-color: #22c55e; }
+
+    .method-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .method-card h3 {
+        font-size: 1.15rem;
+        margin-bottom: 0.5rem;
+        color: #1a1a2e;
+    }
+
+    .method-card p {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .agent-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
     }
 
     .agent-card {
@@ -99,10 +153,9 @@
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
 
-    .agent-card.bull { border-left-color: #22c55e; }
-    .agent-card.bear { border-left-color: #ef4444; }
-    .agent-card.risk { border-left-color: #3b82f6; }
-    .agent-card.macro { border-left-color: #f59e0b; }
+    .agent-card.alpha { border-left-color: #22c55e; }
+    .agent-card.pricing { border-left-color: #3b82f6; }
+    .agent-card.risk { border-left-color: #ef4444; }
 
     .agent-avatar {
         font-size: 2rem;
@@ -122,22 +175,9 @@
         margin: 0;
     }
 
-    .cta-section {
-        margin-top: 1rem;
-    }
-
-    .cta-section .btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        padding: 0.75rem 2rem;
-        font-size: 1.1rem;
-        border-radius: 8px;
-        color: white;
-        text-decoration: none;
-    }
-
-    .cta-section .btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
+    @@media (max-width: 768px) {
+        .method-cards, .agent-cards {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
