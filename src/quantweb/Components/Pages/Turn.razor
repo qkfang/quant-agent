@@ -9,7 +9,7 @@
 <div class="turn-container">
     <div class="turn-header">
         <h1>🔄 Turn</h1>
-        <p class="subtitle">Sequential turn-based analysis where agents build on each other's insights (Alpha → Pricing → Risk).</p>
+        <p class="subtitle">Sequential turn-based analysis where each agent is called one by one, building on previous insights.</p>
     </div>
 
     <div class="query-section">
@@ -69,108 +69,82 @@
             }
         </div>
 
-        <!-- Column Headers -->
-        <div class="lane-headers">
-            <div class="lane-hdr orch-hdr">🎯 Orchestrator</div>
-            <div class="lane-hdr alpha-hdr">📈 Alpha</div>
-            <div class="lane-hdr pricing-hdr">💰 Pricing</div>
-            <div class="lane-hdr risk-hdr">🛡️ Risk</div>
-        </div>
-
         @foreach (var round in roundStates)
         {
-            <!-- Round Divider -->
             <div class="round-divider">
                 <span class="round-label">Turn @round.RoundNumber</span>
             </div>
 
-            <!-- Row 1: Orchestrator dispatches to agents -->
-            <div class="grid-row dispatch-row">
-                <div class="grid-cell orch-cell">
-                    <div class="msg msg-input fade-in">
-                        <span class="msg-label">📥 INPUT</span>
-                        <div class="msg-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
-                    </div>
+            <div class="seq-block orch-block fade-in">
+                <div class="seq-header">
+                    <span class="seq-avatar">🎯</span>
+                    <span class="seq-name">Orchestrator</span>
+                    <span class="seq-tag">INPUT</span>
                 </div>
-                @foreach (var agentName in agentOrder)
-                {
-                    <div class="grid-cell agent-cell">
-                        @if (round.Agents.TryGetValue(agentName, out var dispatchAgent) && !string.IsNullOrEmpty(dispatchAgent.InputMessage))
-                        {
-                            <div class="msg msg-input fade-in">
-                                <span class="msg-label">📥 INPUT</span>
-                                <div class="msg-body">@((MarkupString)FormatContent(dispatchAgent.InputMessage))</div>
-                            </div>
-                        }
-                    </div>
-                }
+                <div class="seq-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
             </div>
 
-            <!-- Row 2: Agent outputs -->
-            <div class="grid-row output-row">
-                <div class="grid-cell orch-cell">
-                    @if (round.AgentsCompleted > 0)
-                    {
-                        <div class="msg msg-waiting fade-in">
-                            <span class="msg-label">⏳ WAITING</span>
-                            <div class="msg-body">Collecting @round.AgentsCompleted / @agentOrder.Length agent responses...</div>
-                        </div>
-                    }
-                    else if (round.HasAgentsStarted)
-                    {
-                        <div class="thinking-indicator">
-                            <div class="thinking-dots"><span></span><span></span><span></span></div>
-                            <span class="thinking-text">Agents analyzing sequentially...</span>
-                        </div>
-                    }
-                </div>
-                @foreach (var agentName in agentOrder)
-                {
-                    <div class="grid-cell agent-cell">
-                        @if (round.Agents.TryGetValue(agentName, out var agent))
-                        {
-                            @if (!string.IsNullOrEmpty(agent.OutputMessage))
-                            {
-                                <div class="msg msg-output slide-up">
-                                    <span class="msg-label">📤 OUTPUT</span>
-                                    <div class="msg-body">@((MarkupString)FormatContent(agent.OutputMessage))</div>
-                                </div>
-                            }
-                            else if (agent.IsWorking)
-                            {
-                                <div class="thinking-indicator">
-                                    <div class="thinking-dots"><span></span><span></span><span></span></div>
-                                    <span class="thinking-text">Analyzing...</span>
-                                </div>
-                            }
-                        }
-                    </div>
-                }
-            </div>
-
-            <!-- Row 3: Orchestrator summary -->
-            @if (!string.IsNullOrEmpty(round.OrchestratorSummary) || round.IsSummarizing)
+            @foreach (var agentName in agentOrder)
             {
-                <div class="grid-row summary-row">
-                    <div class="grid-cell orch-cell full-width">
-                        @if (!string.IsNullOrEmpty(round.OrchestratorSummary))
+                @if (round.Agents.TryGetValue(agentName, out var agent))
+                {
+                    <div class="seq-step">
+                        <div class="seq-arrow">▼</div>
+                    </div>
+
+                    <div class="seq-block agent-block @GetAgentCssClass(agentName) fade-in">
+                        <div class="seq-header">
+                            <span class="seq-avatar">@GetAgentEmoji(agentName)</span>
+                            <span class="seq-name">@agentName</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(agent.InputMessage))
                         {
-                            <div class="msg msg-summary slide-up">
-                                <span class="msg-label">📤 SUMMARY</span>
-                                <div class="msg-body">@((MarkupString)FormatContent(round.OrchestratorSummary))</div>
+                            <div class="seq-section">
+                                <span class="seq-tag">INPUT</span>
+                                <div class="seq-body">@((MarkupString)FormatContent(agent.InputMessage))</div>
                             </div>
                         }
-                        else
+                        @if (!string.IsNullOrEmpty(agent.OutputMessage))
+                        {
+                            <div class="seq-section">
+                                <span class="seq-tag output-tag">OUTPUT</span>
+                                <div class="seq-body">@((MarkupString)FormatContent(agent.OutputMessage))</div>
+                            </div>
+                        }
+                        else if (agent.IsWorking)
                         {
                             <div class="thinking-indicator">
                                 <div class="thinking-dots"><span></span><span></span><span></span></div>
-                                <span class="thinking-text">Orchestrator validating...</span>
+                                <span class="thinking-text">Analyzing...</span>
                             </div>
                         }
                     </div>
-                    <div class="grid-cell agent-cell"></div>
-                    <div class="grid-cell agent-cell"></div>
-                    <div class="grid-cell agent-cell"></div>
+                }
+            }
+
+            @if (!string.IsNullOrEmpty(round.OrchestratorSummary) || round.IsSummarizing)
+            {
+                <div class="seq-step">
+                    <div class="seq-arrow">▼</div>
+                </div>
+
+                <div class="seq-block orch-block summary-block slide-up">
+                    <div class="seq-header">
+                        <span class="seq-avatar">🎯</span>
+                        <span class="seq-name">Orchestrator</span>
+                        <span class="seq-tag summary-tag">SUMMARY</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(round.OrchestratorSummary))
+                    {
+                        <div class="seq-body">@((MarkupString)FormatContent(round.OrchestratorSummary))</div>
+                    }
+                    else
+                    {
+                        <div class="thinking-indicator">
+                            <div class="thinking-dots"><span></span><span></span><span></span></div>
+                            <span class="thinking-text">Orchestrator validating...</span>
+                        </div>
+                    }
                 </div>
             }
         }
@@ -198,7 +172,7 @@
 
 <style>
     .turn-container {
-        max-width: 1400px;
+        max-width: 900px;
         margin: 0 auto;
         padding: 1rem;
     }
@@ -386,34 +360,11 @@
         font-size: 0.85rem;
     }
 
-    /* Lane Headers */
-    .lane-headers {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .lane-hdr {
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px 8px 0 0;
-        font-weight: 700;
-        font-size: 0.85rem;
-        text-align: center;
-        color: white;
-    }
-
-    .orch-hdr { background: #f59e0b; }
-    .alpha-hdr { background: #22c55e; }
-    .pricing-hdr { background: #3b82f6; }
-    .risk-hdr { background: #ef4444; }
-
-    /* Round Divider */
     .round-divider {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        margin: 1rem 0 0.5rem;
+        margin: 1.5rem 0 0.75rem;
     }
 
     .round-divider::before,
@@ -434,91 +385,100 @@
         white-space: nowrap;
     }
 
-    /* Grid Rows */
-    .grid-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+    .seq-block {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .orch-block {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border-left: 4px solid #f59e0b;
+    }
+
+    .agent-block {
+        background: white;
+        border-left: 4px solid #ddd;
+    }
+
+    .agent-block.agent-alpha { border-left-color: #22c55e; }
+    .agent-block.agent-pricing { border-left-color: #3b82f6; }
+    .agent-block.agent-risk { border-left-color: #ef4444; }
+
+    .summary-block {
+        background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+        border-left-color: #667eea;
+    }
+
+    .seq-header {
+        display: flex;
+        align-items: center;
         gap: 0.5rem;
         margin-bottom: 0.5rem;
     }
 
-    .grid-cell {
-        min-height: 2rem;
-        padding: 0.25rem;
+    .seq-avatar {
+        font-size: 1.15rem;
     }
 
-    /* Message Bubbles */
-    .msg {
-        border-radius: 8px;
-        padding: 0.5rem 0.65rem;
-        font-size: 0.8rem;
-        line-height: 1.5;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    .seq-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1a1a2e;
     }
 
-    .msg-label {
-        display: inline-block;
+    .seq-tag {
         font-size: 0.6rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.25rem;
         padding: 0.1rem 0.35rem;
         border-radius: 3px;
-    }
-
-    .msg-body {
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: #374151;
-    }
-
-    .msg-input {
-        background: #eef2ff;
-        border-left: 3px solid #667eea;
-    }
-
-    .msg-input .msg-label {
         color: #4338ca;
         background: #c7d2fe;
     }
 
-    .msg-output {
-        background: #f0fdf4;
-        border-left: 3px solid #22c55e;
-    }
-
-    .msg-output .msg-label {
+    .output-tag {
         color: #166534;
         background: #bbf7d0;
     }
 
-    .msg-summary {
-        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-        border-left: 3px solid #f59e0b;
-    }
-
-    .msg-summary .msg-label {
+    .summary-tag {
         color: #92400e;
         background: #fde68a;
     }
 
-    .msg-waiting {
-        background: #f8fafc;
-        border-left: 3px solid #94a3b8;
+    .seq-section {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
     }
 
-    .msg-waiting .msg-label {
-        color: #475569;
-        background: #e2e8f0;
+    .seq-body {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: #374151;
+        white-space: pre-wrap;
+        word-break: break-word;
     }
 
-    /* Thinking Indicator */
+    .seq-step {
+        display: flex;
+        justify-content: center;
+        padding: 0.25rem 0;
+    }
+
+    .seq-arrow {
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+
     .thinking-indicator {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.5rem 0;
     }
 
     .thinking-text {
@@ -548,7 +508,6 @@
         40% { transform: scale(1); }
     }
 
-    /* Animations */
     .fade-in {
         animation: fadeIn 0.4s ease-out;
     }
@@ -567,7 +526,6 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Final Report */
     .final-report {
         background: linear-gradient(135deg, #f8f9fb 0%, #eef1f8 100%);
         border-radius: 12px;
@@ -588,18 +546,6 @@
         line-height: 1.65;
         color: #374151;
         white-space: pre-wrap;
-    }
-
-    @@media (max-width: 900px) {
-        .lane-headers, .grid-row {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @@media (max-width: 600px) {
-        .lane-headers, .grid-row {
-            grid-template-columns: 1fr;
-        }
     }
 </style>
 
@@ -741,6 +687,22 @@
             ? topicText
             : $"Validating turn {roundNumber} responses...";
     }
+
+    private static string GetAgentCssClass(string agentName) => agentName switch
+    {
+        "Alpha Quant" => "agent-alpha",
+        "Pricing Quant" => "agent-pricing",
+        "Risk Quant" => "agent-risk",
+        _ => "agent-default"
+    };
+
+    private static string GetAgentEmoji(string agentName) => agentName switch
+    {
+        "Alpha Quant" => "📈",
+        "Pricing Quant" => "💰",
+        "Risk Quant" => "🛡️",
+        _ => "🤖"
+    };
 
     private static string FormatContent(string content)
     {

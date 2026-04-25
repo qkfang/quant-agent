@@ -9,7 +9,7 @@
 <div class="compare-container">
     <div class="compare-header">
         <h1>🔀 Multi-Model Compare</h1>
-        <p class="subtitle">Compare how different LLM models (gpt-4o, gpt-4.1, gpt-5.2) analyze the same topic, then see a synthesized comparison.</p>
+        <p class="subtitle">Compare how different LLM models analyze the same topic in parallel swim lanes, with orchestrator synthesis.</p>
     </div>
 
     <div class="query-section">
@@ -49,60 +49,139 @@
         </div>
     }
 
-    @if (events.Count > 0 || isRunning)
+    @if (hasStarted)
     {
-        <div class="compare-timeline">
-            <div class="timeline-header">
-                <h2>🔍 Model Comparison Timeline</h2>
-                @if (isRunning)
+        <div class="status-bar">
+            <div class="status-left">
+                <h2>🔍 Model Comparison</h2>
+                @if (currentRound > 0)
                 {
-                    <span class="status-running">● Live</span>
-                }
-                else
-                {
-                    <span class="status-complete">✓ Complete</span>
+                    <span class="round-badge">Round @currentRound</span>
                 }
             </div>
+            @if (isRunning)
+            {
+                <span class="status-running">● Live</span>
+            }
+            else
+            {
+                <span class="status-complete">✓ Complete</span>
+            }
+        </div>
 
-            <div class="messages-container" @ref="messagesContainer">
-                @foreach (var evt in events)
+        <div class="lane-headers">
+            @foreach (var model in modelOrder)
+            {
+                <div class="lane-hdr @GetModelHdrClass(model)">@GetModelEmoji(model) @model</div>
+            }
+        </div>
+
+        @foreach (var round in roundStates)
+        {
+            <div class="round-divider">
+                <span class="round-label">Round @round.RoundNumber</span>
+            </div>
+
+            <div class="orch-row fade-in">
+                <div class="orch-block">
+                    <div class="orch-header">
+                        <span class="orch-avatar">🎯</span>
+                        <span class="orch-name">Orchestrator</span>
+                        <span class="orch-tag">INPUT</span>
+                    </div>
+                    <div class="orch-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
+                </div>
+            </div>
+
+            <div class="grid-row dispatch-row">
+                @foreach (var model in modelOrder)
                 {
-                    <div class="message-card @evt.CssClass">
-                        <div class="message-header">
-                            <span class="agent-avatar">@evt.AvatarEmoji</span>
-                            <span class="agent-name">@evt.AgentName</span>
-                            <span class="event-type">@evt.Type</span>
-                            <span class="message-time">@evt.Timestamp.ToString("HH:mm:ss")</span>
-                        </div>
-                        @if (!string.IsNullOrEmpty(evt.Message))
+                    <div class="grid-cell">
+                        @if (round.Agents.TryGetValue(model, out var dispatchAgent) && !string.IsNullOrEmpty(dispatchAgent.InputMessage))
                         {
-                            <div class="message-content">
-                                @((MarkupString)FormatContent(evt.Message))
+                            <div class="msg msg-input fade-in">
+                                <span class="msg-label">📥 INPUT</span>
+                                <div class="msg-body">@((MarkupString)FormatContent(dispatchAgent.InputMessage))</div>
                             </div>
                         }
                     </div>
                 }
+            </div>
 
-                @if (isRunning)
+            <div class="grid-row output-row">
+                @foreach (var model in modelOrder)
                 {
-                    <div class="message-card thinking">
-                        <div class="message-header">
-                            <span class="agent-avatar">🤔</span>
-                            <span class="agent-name">Models analyzing...</span>
-                        </div>
-                        <div class="thinking-dots">
-                            <span></span><span></span><span></span>
-                        </div>
+                    <div class="grid-cell">
+                        @if (round.Agents.TryGetValue(model, out var agent))
+                        {
+                            @if (!string.IsNullOrEmpty(agent.OutputMessage))
+                            {
+                                <div class="msg msg-output slide-up">
+                                    <span class="msg-label">📤 OUTPUT</span>
+                                    <div class="msg-body">@((MarkupString)FormatContent(agent.OutputMessage))</div>
+                                </div>
+                            }
+                            else if (agent.IsWorking)
+                            {
+                                <div class="thinking-indicator">
+                                    <div class="thinking-dots"><span></span><span></span><span></span></div>
+                                    <span class="thinking-text">Analyzing...</span>
+                                </div>
+                            }
+                        }
                     </div>
                 }
             </div>
-        </div>
+
+            @if (!string.IsNullOrEmpty(round.OrchestratorSummary) || round.IsSummarizing)
+            {
+                <div class="orch-row slide-up">
+                    <div class="orch-block summary-orch">
+                        <div class="orch-header">
+                            <span class="orch-avatar">🎯</span>
+                            <span class="orch-name">Orchestrator</span>
+                            <span class="orch-tag summary-tag">SUMMARY</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(round.OrchestratorSummary))
+                        {
+                            <div class="orch-body">@((MarkupString)FormatContent(round.OrchestratorSummary))</div>
+                        }
+                        else
+                        {
+                            <div class="thinking-indicator">
+                                <div class="thinking-dots"><span></span><span></span><span></span></div>
+                                <span class="thinking-text">Synthesizing comparison...</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @if (!string.IsNullOrEmpty(finalReport))
+        {
+            <div class="final-report slide-up">
+                <h2>📋 Final Report</h2>
+                <div class="report-content">
+                    @((MarkupString)FormatContent(finalReport))
+                </div>
+            </div>
+        }
+        else if (isFinalizing)
+        {
+            <div class="final-report">
+                <h2>📋 Generating Final Report...</h2>
+                <div class="thinking-indicator">
+                    <div class="thinking-dots"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+        }
     }
 </div>
 
 <style>
     .compare-container {
-        max-width: 900px;
+        max-width: 1200px;
         margin: 0 auto;
         padding: 1rem;
     }
@@ -244,23 +323,32 @@
         font-size: 0.9rem;
     }
 
-    .compare-timeline {
-        background: #f8f9fb;
-        border-radius: 12px;
-        padding: 1.25rem;
-    }
-
-    .timeline-header {
+    .status-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
     }
 
-    .timeline-header h2 {
+    .status-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .status-left h2 {
         font-size: 1.15rem;
         color: #1a1a2e;
         margin: 0;
+    }
+
+    .round-badge {
+        background: #667eea;
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
     }
 
     .status-running {
@@ -281,82 +369,187 @@
         font-size: 0.85rem;
     }
 
-    .messages-container {
+    .lane-headers {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .lane-hdr {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px 8px 0 0;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-align: center;
+        color: white;
+    }
+
+    .model-gpt4o-hdr { background: #3b82f6; }
+    .model-gpt41-hdr { background: #8b5cf6; }
+    .model-gpt52-hdr { background: #22c55e; }
+
+    .round-divider {
         display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        max-height: 60vh;
-        overflow-y: auto;
-        padding-right: 0.5rem;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1rem 0 0.5rem;
     }
 
-    .message-card {
-        background: white;
+    .round-divider::before,
+    .round-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #cbd5e1, transparent);
+    }
+
+    .round-label {
+        background: #667eea;
+        color: white;
+        padding: 0.2rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .orch-row {
+        margin-bottom: 0.5rem;
+    }
+
+    .orch-block {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border-left: 4px solid #f59e0b;
         border-radius: 10px;
-        padding: 1rem 1.25rem;
+        padding: 0.75rem 1rem;
         box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        border-left: 4px solid #ddd;
-        animation: slideIn 0.3s ease-out;
     }
 
-    @@keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    .summary-orch {
+        background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+        border-left-color: #667eea;
     }
 
-    .message-card.agent-gpt4o { border-left-color: #3b82f6; }
-    .message-card.agent-gpt41 { border-left-color: #8b5cf6; }
-    .message-card.agent-gpt52 { border-left-color: #22c55e; }
-    .message-card.agent-orchestrator { border-left-color: #f59e0b; }
-    .message-card.thinking { border-left-color: #94a3b8; }
-
-    .message-header {
+    .orch-header {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 0.5rem;
     }
 
-    .agent-avatar {
-        font-size: 1.25rem;
+    .orch-avatar {
+        font-size: 1.15rem;
     }
 
-    .agent-name {
+    .orch-name {
         font-weight: 600;
         font-size: 0.9rem;
         color: #1a1a2e;
     }
 
-    .event-type {
-        font-size: 0.75rem;
-        color: #999;
-        background: #f0f0f5;
-        padding: 0.15rem 0.5rem;
-        border-radius: 10px;
+    .orch-tag {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+        color: #92400e;
+        background: #fde68a;
     }
 
-    .message-time {
-        margin-left: auto;
-        font-size: 0.75rem;
-        color: #999;
+    .summary-tag {
+        color: #4338ca;
+        background: #c7d2fe;
     }
 
-    .message-content {
-        font-size: 0.9rem;
-        line-height: 1.65;
+    .orch-body {
+        font-size: 0.85rem;
+        line-height: 1.6;
         color: #374151;
         white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .grid-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .grid-cell {
+        min-height: 2rem;
+        padding: 0.25rem;
+    }
+
+    .msg {
+        border-radius: 8px;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .msg-label {
+        display: inline-block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+    }
+
+    .msg-body {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #374151;
+    }
+
+    .msg-input {
+        background: #eef2ff;
+        border-left: 3px solid #667eea;
+    }
+
+    .msg-input .msg-label {
+        color: #4338ca;
+        background: #c7d2fe;
+    }
+
+    .msg-output {
+        background: #f0fdf4;
+        border-left: 3px solid #22c55e;
+    }
+
+    .msg-output .msg-label {
+        color: #166534;
+        background: #bbf7d0;
+    }
+
+    .thinking-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .thinking-text {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-style: italic;
     }
 
     .thinking-dots {
         display: flex;
-        gap: 4px;
-        padding: 0.5rem 0;
+        gap: 3px;
     }
 
     .thinking-dots span {
-        width: 8px;
-        height: 8px;
+        width: 5px;
+        height: 5px;
         background: #94a3b8;
         border-radius: 50%;
         animation: bounce 1.4s infinite ease-in-out;
@@ -369,15 +562,66 @@
         0%, 80%, 100% { transform: scale(0); }
         40% { transform: scale(1); }
     }
+
+    .fade-in {
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .slide-up {
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .final-report {
+        background: linear-gradient(135deg, #f8f9fb 0%, #eef1f8 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border-top: 3px solid #667eea;
+        margin-top: 1.5rem;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .final-report h2 {
+        font-size: 1.15rem;
+        color: #1a1a2e;
+        margin: 0 0 1rem 0;
+    }
+
+    .report-content {
+        font-size: 0.9rem;
+        line-height: 1.65;
+        color: #374151;
+        white-space: pre-wrap;
+    }
+
+    @@media (max-width: 768px) {
+        .lane-headers, .grid-row {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 @code {
     private string queryText = string.Empty;
     private bool isRunning;
+    private bool hasStarted;
+    private bool isFinalizing;
     private string? errorMessage;
-    private List<CompareEvent> events = new();
-    private ElementReference messagesContainer;
+    private string finalReport = string.Empty;
+    private int currentRound;
     private CancellationTokenSource? cts;
+
+    private readonly List<RoundState> roundStates = new();
+    private static readonly string[] modelOrder = ["gpt-4o", "gpt-4.1", "gpt-5.2"];
 
     private readonly string[] sampleQueries = new[]
     {
@@ -398,17 +642,23 @@
             return;
 
         isRunning = true;
+        hasStarted = true;
+        isFinalizing = false;
         errorMessage = null;
-        events.Clear();
+        finalReport = string.Empty;
+        currentRound = 0;
+        roundStates.Clear();
+
         cts = new CancellationTokenSource();
+        StateHasChanged();
 
         try
         {
             await foreach (var evt in CompareService.StreamCompareAsync(queryText, cts.Token))
             {
-                events.Add(evt);
+                HandleEvent(evt);
                 StateHasChanged();
-                await Task.Delay(100);
+                await Task.Delay(50);
             }
         }
         catch (OperationCanceledException)
@@ -420,12 +670,105 @@
         }
         finally
         {
+            isFinalizing = false;
             isRunning = false;
             cts?.Dispose();
             cts = null;
             StateHasChanged();
         }
     }
+
+    private RoundState GetOrCreateRound(int round)
+    {
+        var existing = roundStates.FirstOrDefault(r => r.RoundNumber == round);
+        if (existing is not null) return existing;
+        var state = new RoundState(round);
+        roundStates.Add(state);
+        return state;
+    }
+
+    private void HandleEvent(CompareEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case "RoundStarted":
+                currentRound = evt.Round;
+                GetOrCreateRound(evt.Round);
+                break;
+
+            case "AgentStarted":
+                var startRound = GetOrCreateRound(evt.Round);
+                startRound.Agents[evt.AgentName] = new AgentRoundState
+                {
+                    InputMessage = evt.InputMessage,
+                    IsWorking = true
+                };
+                break;
+
+            case "AgentCompleted":
+                var completeRound = GetOrCreateRound(evt.Round);
+                if (completeRound.Agents.TryGetValue(evt.AgentName, out var agentState))
+                {
+                    agentState.OutputMessage = evt.Message;
+                    agentState.IsWorking = false;
+                }
+                else
+                {
+                    completeRound.Agents[evt.AgentName] = new AgentRoundState
+                    {
+                        OutputMessage = evt.Message,
+                        IsWorking = false
+                    };
+                }
+                break;
+
+            case "OrchestratorSummary":
+                var summaryRound = GetOrCreateRound(evt.Round);
+                summaryRound.OrchestratorSummary = evt.Message;
+                summaryRound.IsSummarizing = false;
+                break;
+
+            case "ConsensusReached":
+            case "MaxRoundsReached":
+                break;
+
+            case "FinalReportStarted":
+                isFinalizing = true;
+                break;
+
+            case "FinalReportCompleted":
+                isFinalizing = false;
+                finalReport = evt.Message;
+                break;
+
+            case "Error":
+                errorMessage = evt.Message;
+                break;
+        }
+    }
+
+    private string GetOrchestratorInputLabel(int roundNumber)
+    {
+        return roundNumber == 1
+            ? queryText
+            : $"Synthesizing round {roundNumber} comparison...";
+    }
+
+    private static string GetModelEmoji(string model) => model switch
+    {
+        "gpt-4o" => "🔵",
+        "gpt-4.1" => "🟣",
+        "gpt-5.2" => "🟢",
+        _ => "🤖"
+    };
+
+    private static string GetModelHdrClass(string model) => model switch
+    {
+        "gpt-4o" => "model-gpt4o-hdr",
+        "gpt-4.1" => "model-gpt41-hdr",
+        "gpt-5.2" => "model-gpt52-hdr",
+        _ => ""
+    };
 
     private static string FormatContent(string content)
     {
@@ -439,5 +782,25 @@
     {
         cts?.Cancel();
         cts?.Dispose();
+    }
+
+    private class RoundState
+    {
+        public int RoundNumber { get; }
+        public Dictionary<string, AgentRoundState> Agents { get; } = new();
+        public string? OrchestratorSummary { get; set; }
+        public bool IsSummarizing { get; set; }
+
+        public bool HasAgentsStarted => Agents.Count > 0;
+        public int AgentsCompleted => Agents.Values.Count(a => !string.IsNullOrEmpty(a.OutputMessage));
+
+        public RoundState(int roundNumber) => RoundNumber = roundNumber;
+    }
+
+    private class AgentRoundState
+    {
+        public string InputMessage { get; set; } = string.Empty;
+        public string? OutputMessage { get; set; }
+        public bool IsWorking { get; set; }
     }
 }
