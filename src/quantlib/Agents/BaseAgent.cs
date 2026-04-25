@@ -86,7 +86,7 @@ public abstract class BaseAgent
         return new AgentResult(text, citations);
     }
 
-    private List<SearchCitation> ExtractCitations(ResponseResult? result)
+    private IReadOnlyList<SearchCitation> ExtractCitations(ResponseResult? result)
     {
         var citations = new List<SearchCitation>();
         if (result is null) return citations;
@@ -115,8 +115,8 @@ public abstract class BaseAgent
                     }
                     else if (annotation is FileCitationMessageAnnotation fileCitation)
                     {
-                        var key = fileCitation.FileId ?? fileCitation.Filename ?? string.Empty;
-                        if (!string.IsNullOrEmpty(key) && seen.Add(key))
+                        var fileIdentifier = fileCitation.FileId ?? fileCitation.Filename ?? string.Empty;
+                        if (!string.IsNullOrEmpty(fileIdentifier) && seen.Add(fileIdentifier))
                         {
                             citations.Add(new SearchCitation(
                                 fileCitation.Filename ?? fileCitation.FileId ?? string.Empty,
