@@ -19,14 +19,15 @@ public record AgentEvent(
     string AgentName,
     string Specialty,
     string Message,
-    DateTime Timestamp
+    DateTime Timestamp,
+    string InputMessage = ""
 )
 {
     public static AgentEvent RoundStarted(int round)
         => new(AgentEventType.RoundStarted, round, "", "", "", DateTime.UtcNow);
 
-    public static AgentEvent Started(int round, string agentName, string specialty)
-        => new(AgentEventType.AgentStarted, round, agentName, specialty, "", DateTime.UtcNow);
+    public static AgentEvent Started(int round, string agentName, string specialty, string inputMessage = "")
+        => new(AgentEventType.AgentStarted, round, agentName, specialty, "", DateTime.UtcNow, inputMessage);
 
     public static AgentEvent Completed(int round, string agentName, string specialty, string message)
         => new(AgentEventType.AgentCompleted, round, agentName, specialty, message, DateTime.UtcNow);

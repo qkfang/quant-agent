@@ -51,10 +51,22 @@ public class QuantOrchestrator
             cancellationToken.ThrowIfCancellationRequested();
             yield return AgentEvent.RoundStarted(round);
 
-            // Signal that each agent is starting
-            yield return AgentEvent.Started(round, _pricingQuant.Name, _pricingQuant.Specialty);
-            yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty);
-            yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty);
+            // Build a concise input description for the UI
+            string agentInputDesc;
+            if (round == 1)
+            {
+                agentInputDesc = $"Provide initial analysis on: {Truncate(userInput, 200)}";
+            }
+            else
+            {
+                var lastSummary = rounds[^1].OrchestratorSummary;
+                agentInputDesc = $"Refine your analysis. Orchestrator feedback:\n{Truncate(lastSummary, 300)}";
+            }
+
+            // Signal that each agent is starting with their input
+            yield return AgentEvent.Started(round, _pricingQuant.Name, _pricingQuant.Specialty, agentInputDesc);
+            yield return AgentEvent.Started(round, _riskQuant.Name, _riskQuant.Specialty, agentInputDesc);
+            yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty, agentInputDesc);
 
             var roundInput = new QuantRoundInput(userInput, rounds);
             var workflow = BuildRoundWorkflow();
@@ -102,6 +114,15 @@ public class QuantOrchestrator
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
         var finalReport = await _orchestrator.RunAsync(finalPrompt);
         yield return AgentEvent.FinalCompleted(finalReport);
+    }
+
+    private static string Truncate(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+        if (text.Length <= maxLength)
+            return text;
+        return text[..maxLength] + "...";
     }
 
     public async Task RunConsoleAsync(string userInput)
@@ -236,6 +257,10 @@ public class QuantOrchestrator
         sb.AppendLine("Summarize the views from all agents. Identify areas of agreement, disagreement, and gaps.");
         sb.AppendLine("If all agents substantially agree on the key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
         sb.AppendLine("If there are still significant disagreements or gaps, identify them clearly so agents can address them in the next round.");
+        sb.AppendLine();
+        sb.AppendLine("Additionally, pose 2-3 targeted debate questions for the agents to address in the next round.");
+        sb.AppendLine("These should challenge assumptions, probe disagreements, or explore analytical gaps.");
+        sb.AppendLine("Format them clearly under a 'Debate Questions' heading.");
 
         return sb.ToString();
     }

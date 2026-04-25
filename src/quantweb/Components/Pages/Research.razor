@@ -9,7 +9,7 @@
 <div class="research-container">
     <div class="research-header">
         <h1>🔬 Research</h1>
-        <p class="subtitle">Submit a research topic and watch concurrent agents analyze it in real-time swimming lanes.</p>
+        <p class="subtitle">Submit a research topic and watch agents analyze, debate, and converge in real-time.</p>
     </div>
 
     <div class="query-section">
@@ -69,51 +69,127 @@
             }
         </div>
 
-        <div class="swim-lanes">
-            @foreach (var lane in lanes)
-            {
-                <div class="swim-lane" style="border-top-color: @lane.Value.Color;">
-                    <div class="lane-header" style="background: @(lane.Value.Color)15; border-bottom-color: @lane.Value.Color;">
-                        <span class="lane-avatar">@lane.Value.Avatar</span>
-                        <span class="lane-title">@lane.Key</span>
-                        @if (lane.Value.IsWorking)
-                        {
-                            <span class="lane-status working">analyzing...</span>
-                        }
-                    </div>
-                    <div class="lane-body">
-                        @foreach (var evt in lane.Value.Events)
-                        {
-                            <div class="lane-event @GetEventCssClass(evt.Type)">
-                                <div class="event-meta">
-                                    <span class="event-round">R@(evt.Round)</span>
-                                    <span class="event-time">@evt.Timestamp.ToString("HH:mm:ss")</span>
-                                </div>
-                                @if (!string.IsNullOrEmpty(evt.Message))
-                                {
-                                    <div class="event-content">
-                                        @((MarkupString)FormatContent(evt.Message))
-                                    </div>
-                                }
-                            </div>
-                        }
-                        @if (lane.Value.IsWorking)
-                        {
-                            <div class="lane-event thinking">
-                                <div class="thinking-dots"><span></span><span></span><span></span></div>
-                            </div>
-                        }
+        <!-- Column Headers -->
+        <div class="lane-headers">
+            <div class="lane-hdr orch-hdr">🎯 Orchestrator</div>
+            <div class="lane-hdr pricing-hdr">💰 Pricing</div>
+            <div class="lane-hdr risk-hdr">🛡️ Risk</div>
+            <div class="lane-hdr alpha-hdr">📈 Alpha</div>
+        </div>
+
+        @foreach (var round in roundStates)
+        {
+            <!-- Round Divider -->
+            <div class="round-divider">
+                <span class="round-label">Round @round.RoundNumber</span>
+            </div>
+
+            <!-- Row 1: Orchestrator dispatches to agents -->
+            <div class="grid-row dispatch-row">
+                <div class="grid-cell orch-cell">
+                    <div class="msg msg-input fade-in">
+                        <span class="msg-label">📥 INPUT</span>
+                        <div class="msg-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
                     </div>
                 </div>
+                @foreach (var agentName in agentOrder)
+                {
+                    <div class="grid-cell agent-cell">
+                        @if (round.Agents.TryGetValue(agentName, out var dispatchAgent) && !string.IsNullOrEmpty(dispatchAgent.InputMessage))
+                        {
+                            <div class="msg msg-input fade-in">
+                                <span class="msg-label">📥 INPUT</span>
+                                <div class="msg-body">@((MarkupString)FormatContent(dispatchAgent.InputMessage))</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Row 2: Agent outputs -->
+            <div class="grid-row output-row">
+                <div class="grid-cell orch-cell">
+                    @if (round.AgentsCompleted > 0)
+                    {
+                        <div class="msg msg-waiting fade-in">
+                            <span class="msg-label">⏳ WAITING</span>
+                            <div class="msg-body">Collecting @round.AgentsCompleted / @agentOrder.Length agent responses...</div>
+                        </div>
+                    }
+                    else if (round.HasAgentsStarted)
+                    {
+                        <div class="thinking-indicator">
+                            <div class="thinking-dots"><span></span><span></span><span></span></div>
+                            <span class="thinking-text">Agents analyzing...</span>
+                        </div>
+                    }
+                </div>
+                @foreach (var agentName in agentOrder)
+                {
+                    <div class="grid-cell agent-cell">
+                        @if (round.Agents.TryGetValue(agentName, out var agent))
+                        {
+                            @if (!string.IsNullOrEmpty(agent.OutputMessage))
+                            {
+                                <div class="msg msg-output slide-up">
+                                    <span class="msg-label">📤 OUTPUT</span>
+                                    <div class="msg-body">@((MarkupString)FormatContent(agent.OutputMessage))</div>
+                                </div>
+                            }
+                            else if (agent.IsWorking)
+                            {
+                                <div class="thinking-indicator">
+                                    <div class="thinking-dots"><span></span><span></span><span></span></div>
+                                    <span class="thinking-text">Analyzing...</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Row 3: Orchestrator summary -->
+            @if (!string.IsNullOrEmpty(round.OrchestratorSummary) || round.IsSummarizing)
+            {
+                <div class="grid-row summary-row">
+                    <div class="grid-cell orch-cell full-width">
+                        @if (!string.IsNullOrEmpty(round.OrchestratorSummary))
+                        {
+                            <div class="msg msg-summary slide-up">
+                                <span class="msg-label">📤 SUMMARY</span>
+                                <div class="msg-body">@((MarkupString)FormatContent(round.OrchestratorSummary))</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="thinking-indicator">
+                                <div class="thinking-dots"><span></span><span></span><span></span></div>
+                                <span class="thinking-text">Orchestrator synthesizing...</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="grid-cell agent-cell"></div>
+                    <div class="grid-cell agent-cell"></div>
+                    <div class="grid-cell agent-cell"></div>
+                </div>
             }
-        </div>
+        }
 
         @if (!string.IsNullOrEmpty(finalReport))
         {
-            <div class="final-report">
+            <div class="final-report slide-up">
                 <h2>📋 Final Report</h2>
                 <div class="report-content">
                     @((MarkupString)FormatContent(finalReport))
+                </div>
+            </div>
+        }
+        else if (isFinalizing)
+        {
+            <div class="final-report">
+                <h2>📋 Generating Final Report...</h2>
+                <div class="thinking-indicator">
+                    <div class="thinking-dots"><span></span><span></span><span></span></div>
                 </div>
             </div>
         }
@@ -310,119 +386,155 @@
         font-size: 0.85rem;
     }
 
-    /* Swimming Lanes */
-    .swim-lanes {
+    /* Lane Headers */
+    .lane-headers {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
     }
 
-    .swim-lane {
-        background: #f8f9fb;
-        border-radius: 10px;
-        border-top: 3px solid #ddd;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        min-height: 200px;
+    .lane-hdr {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px 8px 0 0;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-align: center;
+        color: white;
     }
 
-    .lane-header {
-        padding: 0.6rem 0.75rem;
+    .orch-hdr { background: #f59e0b; }
+    .pricing-hdr { background: #3b82f6; }
+    .risk-hdr { background: #ef4444; }
+    .alpha-hdr { background: #22c55e; }
+
+    /* Round Divider */
+    .round-divider {
         display: flex;
         align-items: center;
-        gap: 0.4rem;
-        border-bottom: 1px solid #e2e8f0;
+        gap: 0.75rem;
+        margin: 1rem 0 0.5rem;
+    }
+
+    .round-divider::before,
+    .round-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #cbd5e1, transparent);
+    }
+
+    .round-label {
+        background: #667eea;
+        color: white;
+        padding: 0.2rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
         font-weight: 600;
-        font-size: 0.85rem;
+        white-space: nowrap;
     }
 
-    .lane-avatar {
-        font-size: 1.1rem;
-    }
-
-    .lane-title {
-        color: #1a1a2e;
-    }
-
-    .lane-status.working {
-        margin-left: auto;
-        font-size: 0.7rem;
-        font-weight: 500;
-        color: #22c55e;
-        animation: pulse 1.5s infinite;
-    }
-
-    .lane-body {
-        padding: 0.5rem;
-        overflow-y: auto;
-        max-height: 55vh;
-        display: flex;
-        flex-direction: column;
+    /* Grid Rows */
+    .grid-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.5rem;
+        margin-bottom: 0.5rem;
     }
 
-    .lane-event {
-        background: white;
+    .grid-cell {
+        min-height: 2rem;
+        padding: 0.25rem;
+    }
+
+    /* Message Bubbles */
+    .msg {
         border-radius: 8px;
-        padding: 0.6rem 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        animation: slideIn 0.3s ease-out;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
-    @@keyframes slideIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+    .msg-label {
+        display: inline-block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
     }
 
-    .lane-event.event-summary {
+    .msg-body {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #374151;
+    }
+
+    .msg-input {
+        background: #eef2ff;
+        border-left: 3px solid #667eea;
+    }
+
+    .msg-input .msg-label {
+        color: #4338ca;
+        background: #c7d2fe;
+    }
+
+    .msg-output {
+        background: #f0fdf4;
+        border-left: 3px solid #22c55e;
+    }
+
+    .msg-output .msg-label {
+        color: #166534;
+        background: #bbf7d0;
+    }
+
+    .msg-summary {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
         border-left: 3px solid #f59e0b;
     }
 
-    .lane-event.event-error {
-        border-left: 3px solid #ef4444;
-        background: #fef2f2;
+    .msg-summary .msg-label {
+        color: #92400e;
+        background: #fde68a;
     }
 
-    .event-meta {
+    .msg-waiting {
+        background: #f8fafc;
+        border-left: 3px solid #94a3b8;
+    }
+
+    .msg-waiting .msg-label {
+        color: #475569;
+        background: #e2e8f0;
+    }
+
+    /* Thinking Indicator */
+    .thinking-indicator {
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.3rem;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
     }
 
-    .event-round {
-        font-size: 0.65rem;
-        font-weight: 600;
-        color: #667eea;
-        background: #667eea15;
-        padding: 0.1rem 0.35rem;
-        border-radius: 4px;
-    }
-
-    .event-time {
-        font-size: 0.65rem;
-        color: #999;
-    }
-
-    .event-content {
-        font-size: 0.82rem;
-        line-height: 1.55;
-        color: #374151;
-        white-space: pre-wrap;
-        word-break: break-word;
+    .thinking-text {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-style: italic;
     }
 
     .thinking-dots {
         display: flex;
-        gap: 4px;
-        padding: 0.4rem 0;
-        justify-content: center;
+        gap: 3px;
     }
 
     .thinking-dots span {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         background: #94a3b8;
         border-radius: 50%;
         animation: bounce 1.4s infinite ease-in-out;
@@ -436,11 +548,33 @@
         40% { transform: scale(1); }
     }
 
+    /* Animations */
+    .fade-in {
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .slide-up {
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Final Report */
     .final-report {
         background: linear-gradient(135deg, #f8f9fb 0%, #eef1f8 100%);
         border-radius: 12px;
         padding: 1.5rem;
         border-top: 3px solid #667eea;
+        margin-top: 1.5rem;
+        animation: slideUp 0.5s ease-out;
     }
 
     .final-report h2 {
@@ -457,13 +591,13 @@
     }
 
     @@media (max-width: 900px) {
-        .swim-lanes {
+        .lane-headers, .grid-row {
             grid-template-columns: repeat(2, 1fr);
         }
     }
 
     @@media (max-width: 600px) {
-        .swim-lanes {
+        .lane-headers, .grid-row {
             grid-template-columns: 1fr;
         }
     }
@@ -473,18 +607,14 @@
     private string topicText = string.Empty;
     private bool isRunning;
     private bool hasStarted;
+    private bool isFinalizing;
     private string? errorMessage;
     private string finalReport = string.Empty;
     private int currentRound;
     private CancellationTokenSource? cts;
 
-    private readonly Dictionary<string, LaneData> lanes = new()
-    {
-        ["Pricing Quant"] = new("💰", "#3b82f6"),
-        ["Risk Quant"] = new("🛡️", "#ef4444"),
-        ["Alpha Quant"] = new("📈", "#22c55e"),
-        ["Orchestrator"] = new("🎯", "#f59e0b"),
-    };
+    private readonly List<RoundState> roundStates = new();
+    private static readonly string[] agentOrder = ["Pricing Quant", "Risk Quant", "Alpha Quant"];
 
     private readonly string[] sampleTopics =
     [
@@ -503,11 +633,11 @@
 
         isRunning = true;
         hasStarted = true;
+        isFinalizing = false;
         errorMessage = null;
         finalReport = string.Empty;
         currentRound = 0;
-        foreach (var lane in lanes.Values)
-            lane.Reset();
+        roundStates.Clear();
 
         cts = new CancellationTokenSource();
         StateHasChanged();
@@ -528,13 +658,21 @@
         }
         finally
         {
-            foreach (var lane in lanes.Values)
-                lane.IsWorking = false;
+            isFinalizing = false;
             isRunning = false;
             cts?.Dispose();
             cts = null;
             StateHasChanged();
         }
+    }
+
+    private RoundState GetOrCreateRound(int round)
+    {
+        var existing = roundStates.FirstOrDefault(r => r.RoundNumber == round);
+        if (existing is not null) return existing;
+        var state = new RoundState(round);
+        roundStates.Add(state);
+        return state;
     }
 
     private void HandleEvent(ResearchEvent evt)
@@ -543,55 +681,66 @@
         {
             case "RoundStarted":
                 currentRound = evt.Round;
+                GetOrCreateRound(evt.Round);
                 break;
 
             case "AgentStarted":
-                if (lanes.TryGetValue(evt.AgentName, out var startLane))
-                    startLane.IsWorking = true;
+                var startRound = GetOrCreateRound(evt.Round);
+                startRound.Agents[evt.AgentName] = new AgentRoundState
+                {
+                    InputMessage = evt.InputMessage,
+                    IsWorking = true
+                };
                 break;
 
             case "AgentCompleted":
-                if (lanes.TryGetValue(evt.AgentName, out var completeLane))
+                var completeRound = GetOrCreateRound(evt.Round);
+                if (completeRound.Agents.TryGetValue(evt.AgentName, out var agentState))
                 {
-                    completeLane.IsWorking = false;
-                    completeLane.Events.Add(evt);
+                    agentState.OutputMessage = evt.Message;
+                    agentState.IsWorking = false;
+                }
+                else
+                {
+                    completeRound.Agents[evt.AgentName] = new AgentRoundState
+                    {
+                        OutputMessage = evt.Message,
+                        IsWorking = false
+                    };
                 }
                 break;
 
             case "OrchestratorSummary":
+                var summaryRound = GetOrCreateRound(evt.Round);
+                summaryRound.OrchestratorSummary = evt.Message;
+                summaryRound.IsSummarizing = false;
+                break;
+
             case "ConsensusReached":
             case "MaxRoundsReached":
-                if (lanes.TryGetValue("Orchestrator", out var orchLane))
-                    orchLane.Events.Add(evt);
                 break;
 
             case "FinalReportStarted":
-                if (lanes.TryGetValue("Orchestrator", out var finalLane))
-                    finalLane.IsWorking = true;
+                isFinalizing = true;
                 break;
 
             case "FinalReportCompleted":
-                if (lanes.TryGetValue("Orchestrator", out var reportLane))
-                    reportLane.IsWorking = false;
+                isFinalizing = false;
                 finalReport = evt.Message;
                 break;
 
             case "Error":
-                // Show errors in the relevant agent lane or orchestrator
-                var targetLane = !string.IsNullOrEmpty(evt.AgentName) && lanes.ContainsKey(evt.AgentName)
-                    ? evt.AgentName : "Orchestrator";
-                if (lanes.TryGetValue(targetLane, out var errLane))
-                    errLane.Events.Add(evt);
+                errorMessage = evt.Message;
                 break;
         }
     }
 
-    private static string GetEventCssClass(string type) => type switch
+    private string GetOrchestratorInputLabel(int roundNumber)
     {
-        "OrchestratorSummary" => "event-summary",
-        "Error" => "event-error",
-        _ => ""
-    };
+        return roundNumber == 1
+            ? topicText
+            : $"Synthesizing round {roundNumber} responses...";
+    }
 
     private static string FormatContent(string content)
     {
@@ -607,23 +756,23 @@
         cts?.Dispose();
     }
 
-    private class LaneData
+    private class RoundState
     {
-        public string Avatar { get; }
-        public string Color { get; }
+        public int RoundNumber { get; }
+        public Dictionary<string, AgentRoundState> Agents { get; } = new();
+        public string? OrchestratorSummary { get; set; }
+        public bool IsSummarizing { get; set; }
+
+        public bool HasAgentsStarted => Agents.Count > 0;
+        public int AgentsCompleted => Agents.Values.Count(a => !string.IsNullOrEmpty(a.OutputMessage));
+
+        public RoundState(int roundNumber) => RoundNumber = roundNumber;
+    }
+
+    private class AgentRoundState
+    {
+        public string InputMessage { get; set; } = string.Empty;
+        public string? OutputMessage { get; set; }
         public bool IsWorking { get; set; }
-        public List<ResearchEvent> Events { get; } = new();
-
-        public LaneData(string avatar, string color)
-        {
-            Avatar = avatar;
-            Color = color;
-        }
-
-        public void Reset()
-        {
-            IsWorking = false;
-            Events.Clear();
-        }
     }
 }

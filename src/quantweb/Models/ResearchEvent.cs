@@ -7,6 +7,7 @@ public class ResearchEvent
     public string AgentName { get; set; } = string.Empty;
     public string Specialty { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string InputMessage { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public string CssClass => AgentName switch
