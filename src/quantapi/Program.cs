@@ -24,7 +24,11 @@ builder.Services.AddHealthChecks();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins(
+                builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+                ?? ["http://localhost:5000", "https://localhost:5001"])
+            .AllowAnyHeader()
+            .AllowAnyMethod());
 });
 
 var app = builder.Build();
@@ -83,7 +87,8 @@ var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingP
 
 app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext) =>
 {
-    logger.LogInformation("Research request: {Topic}", request.Topic);
+    var sanitizedTopic = request.Topic.ReplaceLineEndings(string.Empty);
+    logger.LogInformation("Research request: {Topic}", sanitizedTopic);
 
     httpContext.Response.ContentType = "text/event-stream";
     httpContext.Response.Headers.CacheControl = "no-cache";

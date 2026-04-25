@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Channels;
 using Azure.AI.Projects;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
