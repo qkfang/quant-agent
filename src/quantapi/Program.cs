@@ -190,9 +190,9 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
 
     QuantAgent agent = request.Agent.ToLowerInvariant() switch
     {
-        "alpha" => new AlphaQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<AlphaQuantAgent>()),
-        "pricing" => new PricingQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<PricingQuantAgent>()),
-        "risk" => new RiskQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<RiskQuantAgent>()),
+        "alpha" => new AlphaQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, logger: loggerFactory.CreateLogger<AlphaQuantAgent>()),
+        "pricing" => new PricingQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, logger: loggerFactory.CreateLogger<PricingQuantAgent>()),
+        "risk" => new RiskQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, logger: loggerFactory.CreateLogger<RiskQuantAgent>()),
         _ => throw new ArgumentException($"Unknown agent: {request.Agent}")
     };
 
