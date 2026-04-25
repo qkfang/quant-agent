@@ -4,9 +4,6 @@ param tags object = {}
 param aiSearchEndpoint string = ''
 param aiSearchResourceId string = ''
 
-var fabricWorkspaceId = 'f6ac1ad6-35ca-4153-b40b-ec3be38e1668'
-var fabricArtifactId = 'a0d336ed-e486-449c-b31f-3e1c792f6d90'
-
 resource aiHub 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
   name: name
   location: location

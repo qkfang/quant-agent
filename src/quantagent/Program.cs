@@ -46,7 +46,11 @@ if (args.Length > 0 && args[0] == "--debate")
 // ──────────────────────────────────────────────────────────
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenTelemetry().UseAzureMonitor();
+var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+if (!string.IsNullOrEmpty(appInsightsConnectionString))
+{
+    builder.Services.AddOpenTelemetry().UseAzureMonitor();
+}
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
