@@ -43,8 +43,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   location: location
   tags: commonTags
   sku: {
-    name: 'B1'
-    tier: 'Basic'
+    name: 'P0v3'
+    tier: 'PremiumV3'
   }
   kind: 'linux'
   properties: {
