@@ -12,7 +12,7 @@ var commonTags = {
 }
 var foundryName = '${baseName}-fndry'
 var aiSearchName = '${baseName}-search'
-var apiAppName = '${baseName}-api'
+var apiAppName = '${baseName}-webapi'
 var webAppName = '${baseName}-web'
 
 // ── AI Search ────────────────────────────────────────────────────────────────
