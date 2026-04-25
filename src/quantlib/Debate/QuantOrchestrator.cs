@@ -254,12 +254,17 @@ public class QuantOrchestrator
         }
         sb.AppendLine("=== END CURRENT ROUND ===");
         sb.AppendLine();
-        sb.AppendLine("Summarize the views from all agents. Identify areas of agreement, disagreement, and gaps.");
-        sb.AppendLine("If all agents substantially agree on the key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
-        sb.AppendLine("If there are still significant disagreements or gaps, identify them clearly so agents can address them in the next round.");
+        sb.AppendLine("Summarize the opinions and evidence from all agents. For each opinion:");
+        sb.AppendLine("- Assess whether the supporting evidence is strong, moderate, or weak");
+        sb.AppendLine("- Identify opinions where multiple agents agree (cross-validated)");
+        sb.AppendLine("- Identify opinions that conflict across agents and explain the disagreement");
+        sb.AppendLine("- Flag any opinions with insufficient evidence that need strengthening");
+        sb.AppendLine();
+        sb.AppendLine("If all agents substantially agree on key opinions and evidence is well-supported, include the exact marker [CONSENSUS_REACHED] in your response.");
+        sb.AppendLine("If there are still significant disagreements or opinions with weak evidence, identify them clearly so agents can address them in the next round.");
         sb.AppendLine();
         sb.AppendLine("Additionally, pose 2-3 targeted debate questions for the agents to address in the next round.");
-        sb.AppendLine("These should challenge assumptions, probe disagreements, or explore analytical gaps.");
+        sb.AppendLine("These should challenge weakly-evidenced opinions, probe conflicting opinions, or request additional evidence.");
         sb.AppendLine("Format them clearly under a 'Debate Questions' heading.");
 
         return sb.ToString();
@@ -284,7 +289,11 @@ public class QuantOrchestrator
         }
         sb.AppendLine("=== END DISCUSSION ===");
         sb.AppendLine();
-        sb.AppendLine("Produce a comprehensive final analysis report for the user. Synthesize all perspectives (pricing, risk, alpha) into a cohesive assessment. Include key findings, risk considerations, opportunities, and actionable recommendations.");
+        sb.AppendLine("Produce a comprehensive final analysis report for the user. Structure the report around the validated quant opinions:");
+        sb.AppendLine("1. List the key opinions that were cross-validated and supported by strong evidence across agents");
+        sb.AppendLine("2. Note any opinions that remained contested, with the reasoning from each side");
+        sb.AppendLine("3. Synthesize pricing, risk, and alpha perspectives into actionable recommendations");
+        sb.AppendLine("4. Include confidence levels based on the strength of evidence and degree of consensus");
 
         return sb.ToString();
     }

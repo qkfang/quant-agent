@@ -56,12 +56,29 @@ internal abstract class QuantAgentExecutorBase : Executor<QuantRoundInput, Quant
             }
             sb.AppendLine("=== END PREVIOUS DISCUSSION ===");
             sb.AppendLine();
-            sb.AppendLine($"Based on the previous discussion and orchestrator feedback, please refine your analysis from your specialty perspective ({specialty}).");
-            sb.AppendLine("Address any disagreements or gaps identified. State clearly whether you agree or disagree with the other agents' views and why.");
+            sb.AppendLine($"Based on the previous discussion and orchestrator feedback, refine your analysis from your specialty perspective ({specialty}).");
+            sb.AppendLine();
+            sb.AppendLine("You MUST do the following:");
+            sb.AppendLine("1. **Validate other agents' opinions:** Review each opinion from other agents. For each, state whether you agree or disagree and provide counter-evidence or supporting evidence.");
+            sb.AppendLine("2. **Update your own opinions:** Based on the discussion, revise, add, or remove opinions. Each opinion must include evidence and a confidence level.");
+            sb.AppendLine();
+            sb.AppendLine("Structure your response as:");
+            sb.AppendLine("### Validation of Other Agents' Opinions");
+            sb.AppendLine("- [Agent Name] Opinion [N]: Agree/Disagree - [Your reasoning and evidence]");
+            sb.AppendLine();
+            sb.AppendLine("### My Quant Opinions");
+            sb.AppendLine("**Opinion [N]:** [Statement]");
+            sb.AppendLine("- **Evidence:** [Supporting evidence]");
+            sb.AppendLine("- **Confidence:** [High / Medium / Low]");
         }
         else
         {
             sb.AppendLine($"Provide your initial analysis from your specialty perspective ({specialty}).");
+            sb.AppendLine();
+            sb.AppendLine("Structure your response as a list of Quant Opinions:");
+            sb.AppendLine("**Opinion [N]:** [Your opinion statement]");
+            sb.AppendLine("- **Evidence:** [Supporting evidence and reasoning]");
+            sb.AppendLine("- **Confidence:** [High / Medium / Low]");
         }
 
         return sb.ToString();
