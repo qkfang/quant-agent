@@ -86,14 +86,6 @@ var defaultCredential = new DefaultAzureCredential(new DefaultAzureCredentialOpt
 
 AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 
-// var apiMcpUrl = app.Configuration["API_INTG_MCP_URL"];
-
-// var apiIntgTool = ResponseTool.CreateMcpTool(
-//     serverLabel: "api-intg",
-//     serverUri: new Uri($"{apiMcpUrl}/mcp"),
-//     toolCallApprovalPolicy: new McpToolCallApprovalPolicy(GlobalMcpToolCallApprovalPolicy.NeverRequireApproval)
-// );
-
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
 var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], null, loggerFactory.CreateLogger<QuantAgentInsight>());
