@@ -222,7 +222,7 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
         return;
     }
 
-    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = response, timestamp = DateTime.UtcNow };
+    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = response.Text, timestamp = DateTime.UtcNow };
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(responseEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
