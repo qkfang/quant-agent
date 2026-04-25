@@ -1,6 +1,7 @@
 using QuantLib.Agents;
 using QuantLib.Agents.Philosophers;
 using QuantLib.Agents.Quants;
+using QuantLib.Agents.Compare;
 using Azure.AI.Projects;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
@@ -109,9 +110,46 @@ app.MapPost("/research", async (ResearchRequest request, HttpContext httpContext
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 });
 
+// ──────────────────────────────────────────────────────────
+// Compare SSE streaming endpoint
+// ──────────────────────────────────────────────────────────
+app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) =>
+{
+    var sanitizedTopic = request.Topic.ReplaceLineEndings(string.Empty);
+    logger.LogInformation("Compare request: {Topic}", sanitizedTopic);
+
+    httpContext.Response.ContentType = "text/event-stream";
+    httpContext.Response.Headers.CacheControl = "no-cache";
+    httpContext.Response.Headers.Connection = "keep-alive";
+
+    var models = new List<(string ModelName, string DeploymentName)>
+    {
+        ("gpt-4o", app.Configuration["AZURE_AI_COMPARE_GPT4O_DEPLOYMENT"] ?? "gpt-4o"),
+        ("gpt-4.1", app.Configuration["AZURE_AI_COMPARE_GPT41_DEPLOYMENT"] ?? "gpt-4.1"),
+        ("gpt-5.2", app.Configuration["AZURE_AI_COMPARE_GPT52_DEPLOYMENT"] ?? "gpt-5.2")
+    };
+
+    var orchestrator = new CompareOrchestrator(
+        apiProjectClient,
+        models,
+        apiDeploymentName,
+        loggerFactory.CreateLogger<CompareOrchestrator>());
+
+    await foreach (var compareEvent in orchestrator.RunStreamingAsync(request.Topic, httpContext.RequestAborted))
+    {
+        var json = JsonSerializer.Serialize(compareEvent, jsonOptions);
+        await httpContext.Response.WriteAsync($"data: {json}\n\n", httpContext.RequestAborted);
+        await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+    }
+
+    await httpContext.Response.WriteAsync("data: [DONE]\n\n", httpContext.RequestAborted);
+    await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+});
+
 await app.RunAsync();
 
 record ChatRequest(string Message);
 record DebateRequest(string Topic);
 record DebateResponse(string Topic, List<DebateTurn> Turns);
 record ResearchRequest(string Topic);
+record CompareRequest(string Topic);

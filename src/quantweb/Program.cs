@@ -23,6 +23,14 @@ builder.Services.AddHttpClient<IResearchService, ResearchService>(client =>
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 
+// Register compare service
+builder.Services.AddHttpClient<ICompareService, CompareService>(client =>
+{
+    var apiBaseUrl = builder.Configuration["QUANTAPI_BASE_URL"] ?? "http://localhost:5100";
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

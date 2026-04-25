@@ -54,6 +54,63 @@ resource gpt5oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
   }
 }
 
+resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: aiHub
+  name: 'gpt-4o'
+  dependsOn: [gpt5oDeployment]
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4o'
+      version: '2024-08-06'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+}
+
+resource gpt41Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: aiHub
+  name: 'gpt-4.1'
+  dependsOn: [gpt4oDeployment]
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4.1'
+      version: '2025-04-14'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+}
+
+resource gpt52Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: aiHub
+  name: 'gpt-5.2'
+  dependsOn: [gpt41Deployment]
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.2'
+      version: '2026-01-15'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+}
+
 resource aiSearchConnection 'Microsoft.CognitiveServices/accounts/connections@2025-10-01-preview' = if (aiSearchEndpoint != '') {
   parent: aiHub
   name: 'ai-search-connection'
@@ -86,6 +143,9 @@ output accountName string = aiHub.name
 output resourceId string = aiHub.id
 output endpoint string = aiHub.properties.endpoint
 output deploymentName string = gpt5oDeployment.name
+output gpt4oDeploymentName string = gpt4oDeployment.name
+output gpt41DeploymentName string = gpt41Deployment.name
+output gpt52DeploymentName string = gpt52Deployment.name
 output projectName string = aiProject.name
 output location string = location
 output principalId string = aiHub.identity.principalId
