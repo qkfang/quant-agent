@@ -1,5 +1,6 @@
 using QuantLib.Agents;
 using QuantLib.Agents.Philosophers;
+using QuantLib.Agents.Quants;
 using Azure.AI.Projects;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 // Usage:
 //   dotnet run -- --debate "your topic"
-//   dotnet run -- --insight "your question"
+//   dotnet run -- --quant "market analysis request"
 
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: false)
@@ -45,5 +46,17 @@ if (args.Length > 0 && args[0] == "--debate")
     return;
 }
 
+if (args.Length > 0 && args[0] == "--quant")
+{
+    var request = args.Length > 1
+        ? string.Join(" ", args.Skip(1))
+        : "China market overview for May 2026";
+
+    var orchestrator = new QuantOrchestrator(aiProjectClient, deploymentName, loggerFactory.CreateLogger<QuantOrchestrator>());
+    await orchestrator.RunConsoleAsync(request);
+    return;
+}
+
 Console.WriteLine("Usage:");
 Console.WriteLine("  dotnet run -- --debate \"your topic\"");
+Console.WriteLine("  dotnet run -- --quant \"market analysis request\"");
