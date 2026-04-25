@@ -204,6 +204,9 @@ resource userSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments
 // ── Outputs ──────────────────────────────────────────────────────────────────
 output foundryEndpoint string = azureFoundry.outputs.endpoint
 output foundryDeploymentName string = azureFoundry.outputs.deploymentName
+output gpt4oDeploymentName string = azureFoundry.outputs.gpt4oDeploymentName
+output gpt41DeploymentName string = azureFoundry.outputs.gpt41DeploymentName
+output gpt52DeploymentName string = azureFoundry.outputs.gpt52DeploymentName
 output aiSearchEndpoint string = aiSearch.outputs.endpoint
 output apiAppDefaultHostName string = apiApp.outputs.defaultHostName
 output webAppDefaultHostName string = webApp.outputs.defaultHostName

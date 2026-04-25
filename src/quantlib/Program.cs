@@ -1,6 +1,7 @@
 using QuantLib.Agents;
 using QuantLib.Agents.Turn;
 using QuantLib.Agents.Quants;
+using QuantLib.Agents.Compare;
 using Azure.AI.Projects;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 // Usage:
 //   dotnet run -- --turn "market analysis request"
 //   dotnet run -- --quant "market analysis request"
+//   dotnet run -- --compare "topic to compare across models"
 
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: false)
@@ -57,6 +59,29 @@ if (args.Length > 0 && args[0] == "--quant")
     return;
 }
 
+if (args.Length > 0 && args[0] == "--compare")
+{
+    var request = args.Length > 1
+        ? string.Join(" ", args.Skip(1))
+        : "What are the key factors driving global inflation in 2026?";
+
+    var models = new List<(string ModelName, string DeploymentName)>
+    {
+        ("gpt-4o", config["AZURE_AI_COMPARE_GPT4O_DEPLOYMENT"] ?? "gpt-4o"),
+        ("gpt-4.1", config["AZURE_AI_COMPARE_GPT41_DEPLOYMENT"] ?? "gpt-4.1"),
+        ("gpt-5.2", config["AZURE_AI_COMPARE_GPT52_DEPLOYMENT"] ?? "gpt-5.2")
+    };
+
+    var orchestrator = new CompareOrchestrator(
+        aiProjectClient,
+        models,
+        deploymentName,
+        loggerFactory.CreateLogger<CompareOrchestrator>());
+    await orchestrator.RunConsoleAsync(request);
+    return;
+}
+
 Console.WriteLine("Usage:");
 Console.WriteLine("  dotnet run -- --turn \"market analysis request\"");
 Console.WriteLine("  dotnet run -- --quant \"market analysis request\"");
+Console.WriteLine("  dotnet run -- --compare \"topic to compare across models\"");

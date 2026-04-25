@@ -1,0 +1,443 @@
+@page "/compare"
+@using quantweb.Models
+@using quantweb.Services
+@inject ICompareService CompareService
+@rendermode InteractiveServer
+
+<PageTitle>Multi-Model Compare</PageTitle>
+
+<div class="compare-container">
+    <div class="compare-header">
+        <h1>🔀 Multi-Model Compare</h1>
+        <p class="subtitle">Compare how different LLM models (gpt-4o, gpt-4.1, gpt-5.2) analyze the same topic, then see a synthesized comparison.</p>
+    </div>
+
+    <div class="query-section">
+        <div class="query-input-group">
+            <textarea @bind="queryText"
+                      @bind:event="oninput"
+                      placeholder="Enter a topic to compare across models... e.g., 'What are the key risks in the current tech sector?'"
+                      rows="3"
+                      disabled="@isRunning"
+                      class="query-input"></textarea>
+            <button class="btn-run" @onclick="StartCompare" disabled="@(isRunning || string.IsNullOrWhiteSpace(queryText))">
+                @if (isRunning)
+                {
+                    <span class="spinner"></span>
+                    <span>Comparing...</span>
+                }
+                else
+                {
+                    <span>🚀 Compare Models</span>
+                }
+            </button>
+        </div>
+
+        <div class="sample-queries">
+            <span class="sample-label">Try:</span>
+            @foreach (var sample in sampleQueries)
+            {
+                <button class="sample-btn" @onclick="() => SetQuery(sample)" disabled="@isRunning">@sample</button>
+            }
+        </div>
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <div class="error-banner">
+            <strong>⚠️ Error:</strong> @errorMessage
+        </div>
+    }
+
+    @if (events.Count > 0 || isRunning)
+    {
+        <div class="compare-timeline">
+            <div class="timeline-header">
+                <h2>🔍 Model Comparison Timeline</h2>
+                @if (isRunning)
+                {
+                    <span class="status-running">● Live</span>
+                }
+                else
+                {
+                    <span class="status-complete">✓ Complete</span>
+                }
+            </div>
+
+            <div class="messages-container" @ref="messagesContainer">
+                @foreach (var evt in events)
+                {
+                    <div class="message-card @evt.CssClass">
+                        <div class="message-header">
+                            <span class="agent-avatar">@evt.AvatarEmoji</span>
+                            <span class="agent-name">@evt.AgentName</span>
+                            <span class="event-type">@evt.Type</span>
+                            <span class="message-time">@evt.Timestamp.ToString("HH:mm:ss")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(evt.Message))
+                        {
+                            <div class="message-content">
+                                @((MarkupString)FormatContent(evt.Message))
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (isRunning)
+                {
+                    <div class="message-card thinking">
+                        <div class="message-header">
+                            <span class="agent-avatar">🤔</span>
+                            <span class="agent-name">Models analyzing...</span>
+                        </div>
+                        <div class="thinking-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .compare-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .compare-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .compare-header h1 {
+        font-size: 1.75rem;
+        color: #1a1a2e;
+        margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .query-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .query-input-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .query-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        resize: vertical;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        min-height: 80px;
+    }
+
+    .query-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .query-input:disabled {
+        background: #f8f9fa;
+        color: #999;
+    }
+
+    .btn-run {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 80px;
+        transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .btn-run:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .btn-run:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .sample-queries {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        align-items: center;
+    }
+
+    .sample-label {
+        font-size: 0.8rem;
+        color: #999;
+        font-weight: 500;
+    }
+
+    .sample-btn {
+        background: #f0f0f5;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.2s;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sample-btn:hover:not(:disabled) {
+        background: #e8e8f0;
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    .sample-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .error-banner {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .compare-timeline {
+        background: #f8f9fb;
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .timeline-header h2 {
+        font-size: 1.15rem;
+        color: #1a1a2e;
+        margin: 0;
+    }
+
+    .status-running {
+        color: #22c55e;
+        font-weight: 600;
+        font-size: 0.85rem;
+        animation: pulse 1.5s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .status-complete {
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .messages-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .message-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        border-left: 4px solid #ddd;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-card.agent-gpt4o { border-left-color: #3b82f6; }
+    .message-card.agent-gpt41 { border-left-color: #8b5cf6; }
+    .message-card.agent-gpt52 { border-left-color: #22c55e; }
+    .message-card.agent-orchestrator { border-left-color: #f59e0b; }
+    .message-card.thinking { border-left-color: #94a3b8; }
+
+    .message-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .agent-avatar {
+        font-size: 1.25rem;
+    }
+
+    .agent-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1a1a2e;
+    }
+
+    .event-type {
+        font-size: 0.75rem;
+        color: #999;
+        background: #f0f0f5;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+    }
+
+    .message-time {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #999;
+    }
+
+    .message-content {
+        font-size: 0.9rem;
+        line-height: 1.65;
+        color: #374151;
+        white-space: pre-wrap;
+    }
+
+    .thinking-dots {
+        display: flex;
+        gap: 4px;
+        padding: 0.5rem 0;
+    }
+
+    .thinking-dots span {
+        width: 8px;
+        height: 8px;
+        background: #94a3b8;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @@keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+</style>
+
+@code {
+    private string queryText = string.Empty;
+    private bool isRunning;
+    private string? errorMessage;
+    private List<CompareEvent> events = new();
+    private ElementReference messagesContainer;
+    private CancellationTokenSource? cts;
+
+    private readonly string[] sampleQueries = new[]
+    {
+        "What are the key risks in the current tech sector?",
+        "Analyze the impact of rising interest rates on real estate markets",
+        "What is the future of renewable energy investment?",
+        "Compare the merits of active vs passive investing strategies"
+    };
+
+    private void SetQuery(string query)
+    {
+        queryText = query;
+    }
+
+    private async Task StartCompare()
+    {
+        if (string.IsNullOrWhiteSpace(queryText) || isRunning)
+            return;
+
+        isRunning = true;
+        errorMessage = null;
+        events.Clear();
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            await foreach (var evt in CompareService.StreamCompareAsync(queryText, cts.Token))
+            {
+                events.Add(evt);
+                StateHasChanged();
+                await Task.Delay(100);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isRunning = false;
+            cts?.Dispose();
+            cts = null;
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatContent(string content)
+    {
+        content = System.Net.WebUtility.HtmlEncode(content);
+        content = System.Text.RegularExpressions.Regex.Replace(
+            content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        return content;
+    }
+
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+}
