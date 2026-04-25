@@ -3,7 +3,8 @@ param location string
 param tags object = {}
 param skuName string = 'B1'
 param skuTier string = 'Basic'
-param linuxFxVersion string = 'DOTNETCORE|8.0'
+param linuxFxVersion string = 'DOTNETCORE|10.0'
+param appCommandLine string = ''
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${name}-asp'
@@ -32,6 +33,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: linuxFxVersion
+      appCommandLine: appCommandLine
       alwaysOn: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
