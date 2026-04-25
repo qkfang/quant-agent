@@ -2,7 +2,7 @@ using Azure.AI.Projects;
 using Azure.AI.Projects.Agents;
 using Microsoft.Extensions.Logging;
 
-namespace QuantLib.Agents.Quants;
+namespace QuantLib.Agents;
 
 public class QuantAgent : BaseAgent
 {

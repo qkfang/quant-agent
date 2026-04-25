@@ -1,7 +1,7 @@
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
 
-namespace QuantLib.Agents.Quants;
+namespace QuantLib.Agents;
 
 public class AlphaQuantAgent : QuantAgent
 {
