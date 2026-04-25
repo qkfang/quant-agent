@@ -18,12 +18,17 @@ public class QuantAgent : BaseAgent
         string consoleColor,
         string deploymentName,
         string instructions,
-        string? knowledgeBaseId = null,
+        string? searchConnectionId = null,
+        string? searchIndexName = null,
         ILogger? logger = null)
         : base(aiProjectClient, agentId, deploymentName, instructions, null,
-            string.IsNullOrWhiteSpace(knowledgeBaseId)
-                ? (Action<DeclarativeAgentDefinition>?)null
-                : agentDef => agentDef.Tools.Add(new KnowledgeBaseToolDefinition(knowledgeBaseId)),
+            agentDef =>
+            {
+                if (!string.IsNullOrWhiteSpace(searchConnectionId) && !string.IsNullOrWhiteSpace(searchIndexName))
+                    agentDef.Tools.Add(new AzureAISearchTool(new AzureAISearchToolOptions([
+                        new AzureAISearchToolIndex { ProjectConnectionId = searchConnectionId, IndexName = searchIndexName }
+                    ])));
+            },
             logger)
     {
         Name = name;

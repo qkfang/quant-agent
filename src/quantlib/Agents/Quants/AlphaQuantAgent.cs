@@ -31,8 +31,8 @@ public class AlphaQuantAgent : QuantAgent
         When asked to refine, address specific disagreements and state your position clearly.
         """;
 
-    public AlphaQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? knowledgeBaseId = null, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Alpha Quant", "Alpha Signals & Trading Strategies", "\u001b[32m", deploymentName, Instructions, knowledgeBaseId, logger)
+    public AlphaQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Alpha Quant", "Alpha Signals & Trading Strategies", "\u001b[32m", deploymentName, Instructions, searchConnectionId, searchIndexName, logger)
     {
     }
 }

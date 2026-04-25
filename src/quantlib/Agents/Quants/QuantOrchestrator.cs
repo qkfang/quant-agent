@@ -15,13 +15,13 @@ public class QuantOrchestrator
     private readonly QuantOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
-    public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? knowledgeBaseId = null)
+    public QuantOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null)
     {
         _logger = logger;
 
-        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
-        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
-        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, knowledgeBaseId, logger);
+        _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
+        _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
+        _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, logger);
         _orchestrator = new QuantOrchestratorAgent(aiProjectClient, deploymentName, logger);
     }
 

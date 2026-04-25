@@ -30,8 +30,8 @@ public class RiskQuantAgent : QuantAgent
         When asked to refine, address specific disagreements and state your position clearly.
         """;
 
-    public RiskQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? knowledgeBaseId = null, ILogger? logger = null)
-        : base(aiProjectClient, AgentId, "Risk Quant", "Risk Management & VaR", "\u001b[35m", deploymentName, Instructions, knowledgeBaseId, logger)
+    public RiskQuantAgent(AIProjectClient aiProjectClient, string deploymentName, string? searchConnectionId = null, string? searchIndexName = null, ILogger? logger = null)
+        : base(aiProjectClient, AgentId, "Risk Quant", "Risk Management & VaR", "\u001b[35m", deploymentName, Instructions, searchConnectionId, searchIndexName, logger)
     {
     }
 }

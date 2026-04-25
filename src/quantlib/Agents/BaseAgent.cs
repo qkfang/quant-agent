@@ -50,7 +50,7 @@ public abstract class BaseAgent
     {
         var sw = Stopwatch.StartNew();
 
-        CreateResponseOptions nextOptions = new()
+        CreateResponseOptions? nextOptions = new()
         {
             InputItems = { ResponseItem.CreateUserMessageItem(message) }
         };
@@ -62,7 +62,7 @@ public abstract class BaseAgent
             result = await _responseClient.CreateResponseAsync(nextOptions);
             nextOptions = null;
 
-            foreach (var item in result.OutputItems)
+            foreach (var item in result!.OutputItems)
             {
                 if (item is McpToolCallApprovalRequestItem mcpCall)
                 {
