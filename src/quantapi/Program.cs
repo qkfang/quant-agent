@@ -60,15 +60,6 @@ AIProjectClient apiProjectClient = new(new Uri(apiEndpoint), defaultCredential);
 
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 
-var insightAgent = new QuantAgentInsight(apiProjectClient, apiDeploymentName, [], null, loggerFactory.CreateLogger<QuantAgentInsight>());
-
-app.MapPost("/insight", async (ChatRequest request) =>
-{
-    logger.LogInformation("Insight request: {Message}", request.Message);
-    var response = await insightAgent.RunAsync(request.Message);
-    return Results.Ok(new { response });
-});
-
 // ──────────────────────────────────────────────────────────
 // Philosopher debate API endpoint
 // ──────────────────────────────────────────────────────────

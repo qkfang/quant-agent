@@ -25,13 +25,13 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore src/quantweb/quantagent-web.csproj
+        run: dotnet restore src/quantweb/quantweb.csproj
 
       - name: Build
-        run: dotnet build src/quantweb/quantagent-web.csproj --configuration Release --no-restore
+        run: dotnet build src/quantweb/quantweb.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish src/quantweb/quantagent-web.csproj --configuration Release --output ./publish
+        run: dotnet publish src/quantweb/quantweb.csproj --configuration Release --output ./publish
 
       - name: Azure CLI Login
         uses: azure/login@v1

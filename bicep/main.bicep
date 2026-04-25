@@ -54,7 +54,7 @@ module webApp 'webapp.bicep' = {
     name: webAppName
     location: location
     tags: commonTags
-    appCommandLine: 'dotnet quantagent-web.dll'
+    appCommandLine: 'dotnet quantweb.dll'
   }
 }
 
