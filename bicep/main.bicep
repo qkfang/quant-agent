@@ -79,6 +79,10 @@ module apiApp 'webapp.bicep' = {
     tags: commonTags
     appServicePlanId: appServicePlan.id
     appCommandLine: 'dotnet quantapi.dll'
+    appSettings: {
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.appInsightsConnectionString
+      ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
+    }
   }
 }
 
@@ -92,6 +96,8 @@ module webApp 'webapp.bicep' = {
     appCommandLine: 'dotnet quantweb.dll'
     appSettings: {
       QUANTAPI_BASE_URL: 'https://${apiApp.outputs.defaultHostName}'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.appInsightsConnectionString
+      ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
     }
   }
 }
@@ -238,25 +244,5 @@ resource foundryDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
         enabled: true
       }
     ]
-  }
-}
-
-// ── App Insights Connection: Foundry Project ──────────────────────────────────
-resource foundryProjectRef 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' existing = {
-  parent: foundryAccount
-  name: '${foundryName}-project'
-}
-
-resource appInsightsProjectConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-10-01-preview' = {
-  parent: foundryProjectRef
-  name: 'app-insights-connection'
-  properties: {
-    authType: 'AAD'
-    category: 'AppInsights'
-    target: monitoring.outputs.appInsightsId
-    metadata: {
-      type: 'app_insights'
-      ResourceId: monitoring.outputs.appInsightsId
-    }
   }
 }
