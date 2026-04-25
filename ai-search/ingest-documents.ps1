@@ -1,5 +1,5 @@
-$SearchServiceName = "melt-search"
-$IndexPrefix = "melt"
+$SearchServiceName = "quant-search"
+$IndexPrefix = "quant"
 
 $ErrorActionPreference = "Stop"
 
@@ -43,9 +43,9 @@ function Upload-Documents {
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "Ingesting documents into '${IndexPrefix}_knowledge'..."
-Upload-Documents -IndexName "${IndexPrefix}_knowledge" -DocumentFolder (Join-Path $scriptDir "melt_knowledge")
+Upload-Documents -IndexName "${IndexPrefix}_knowledge" -DocumentFolder (Join-Path $scriptDir "quant_knowledge")
 
 Write-Host "Ingesting documents into '${IndexPrefix}_service_doc'..."
-Upload-Documents -IndexName "${IndexPrefix}_service_doc" -DocumentFolder (Join-Path $scriptDir "melt_service_doc")
+Upload-Documents -IndexName "${IndexPrefix}_service_doc" -DocumentFolder (Join-Path $scriptDir "quant_service_doc")
 
 Write-Host "`nDocument ingestion complete."

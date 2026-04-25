@@ -20,13 +20,13 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     #   - name: Create Resource Group
-    #     run: az group create --name 'rg-melt' --location 'eastus2'
+    #     run: az group create --name 'rg-quant' --location 'eastus2'
 
       - name: Deploy Bicep
         working-directory: bicep
         run: |
           az deployment group create \
-            --name 'melt-dev' \
-            --resource-group 'rg-melt' \
+            --name 'quant-dev' \
+            --resource-group 'rg-quant' \
             --template-file './main.bicep' \
             --parameters './parameters.dev.json'

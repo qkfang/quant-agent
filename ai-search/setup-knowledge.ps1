@@ -1,6 +1,6 @@
-$SearchServiceName = "melt-search"
-$FoundryEndpoint = "https://melt-foundry.services.ai.azure.com"
-$IndexPrefix = "melt"
+$SearchServiceName = "quant-search"
+$FoundryEndpoint = "https://quant-foundry.services.ai.azure.com"
+$IndexPrefix = "quant"
 
 $ErrorActionPreference = "Stop"
 

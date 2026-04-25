@@ -1,7 +1,7 @@
-$SearchServiceName = "melt-search"
-$ResourceGroupName = "rg-melt"
-$IndexPrefix = "melt"
-$FoundryEndpoint = "https://ai-melt.services.ai.azure.com"
+$SearchServiceName = "quant-search"
+$ResourceGroupName = "rg-quant"
+$IndexPrefix = "quant"
+$FoundryEndpoint = "https://ai-quant.services.ai.azure.com"
 
 $ErrorActionPreference = "Stop"
 
@@ -62,7 +62,7 @@ function Upload-Documents {
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# --- melt_knowledge index ---
+# --- quant_knowledge index ---
 $knowledgeIndexName = "${IndexPrefix}_knowledge"
 $knowledgeIndexDef = @{
     name   = $knowledgeIndexName
@@ -130,9 +130,9 @@ $knowledgeIndexDef = @{
 }
 
 New-SearchIndex -IndexName $knowledgeIndexName -IndexDefinition $knowledgeIndexDef
-Upload-Documents -IndexName $knowledgeIndexName -DocumentFolder (Join-Path $scriptDir "melt_knowledge")
+Upload-Documents -IndexName $knowledgeIndexName -DocumentFolder (Join-Path $scriptDir "quant_knowledge")
 
-# --- melt_service_doc index ---
+# --- quant_service_doc index ---
 $serviceDocIndexName = "${IndexPrefix}_service_doc"
 $serviceDocIndexDef = @{
     name   = $serviceDocIndexName
@@ -202,6 +202,6 @@ $serviceDocIndexDef = @{
 }
 
 New-SearchIndex -IndexName $serviceDocIndexName -IndexDefinition $serviceDocIndexDef
-Upload-Documents -IndexName $serviceDocIndexName -DocumentFolder (Join-Path $scriptDir "melt_service_doc")
+Upload-Documents -IndexName $serviceDocIndexName -DocumentFolder (Join-Path $scriptDir "quant_service_doc")
 
 Write-Host "`nSetup complete. Indexes created with semantic search and vector search enabled."
