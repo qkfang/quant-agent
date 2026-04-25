@@ -43,42 +43,6 @@ function New-KnowledgeSource {
     }
 }
 
-function New-OneLakeKnowledgeSource {
-    param(
-        [string]$Name,
-        [string]$Description,
-        [string]$FabricWorkspaceId,
-        [string]$LakehouseId,
-        [string]$TargetPath
-    )
-
-    Write-Host "Creating OneLake knowledge source: $Name"
-
-    $oneLakeParams = @{
-        fabricWorkspaceId = $FabricWorkspaceId
-        lakehouseId       = $LakehouseId
-    }
-    if ($TargetPath) {
-        $oneLakeParams.targetPath = $TargetPath
-    }
-
-    $body = @{
-        name                    = $Name
-        kind                    = "indexedOneLake"
-        description             = $Description
-        indexedOneLakeParameters = $oneLakeParams
-    } | ConvertTo-Json -Depth 20
-
-    $uri = "$searchEndpoint/knowledgesources/${Name}?api-version=$apiVersion"
-    try {
-        Invoke-RestMethod -Uri $uri -Method Put -Headers $headers -Body $body
-        Write-Host "  OneLake knowledge source '$Name' created/updated."
-    }
-    catch {
-        Write-Warning "  Failed to create OneLake knowledge source '$Name': $_"
-    }
-}
-
 function New-KnowledgeBase {
     param(
         [string]$Name,
@@ -141,18 +105,5 @@ New-KnowledgeBase `
     -Name "${IndexPrefix}-kb" `
     -Description "Combined knowledge base for production support and service documentation." `
     -KnowledgeSourceNames @("${IndexPrefix}-knowledge-ks", "${IndexPrefix}-service-doc-ks")
-
-# --- OneLake knowledge source ---
-New-OneLakeKnowledgeSource `
-    -Name "${IndexPrefix}-onelake-ks" `
-    -Description "OneLake lakehouse knowledge source for telemetry and operational data from Fabric." `
-    -FabricWorkspaceId "f6ac1ad6-35ca-4153-b40b-ec3be38e1668" `
-    -LakehouseId "cb641cf2-7039-48bd-8039-54e5862f668c"
-
-# --- OneLake knowledge base ---
-New-KnowledgeBase `
-    -Name "${IndexPrefix}-data" `
-    -Description "Knowledge base for OneLake telemetry and operational data." `
-    -KnowledgeSourceNames @("${IndexPrefix}-onelake-ks")
 
 Write-Host "`nKnowledge setup complete."
