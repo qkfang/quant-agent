@@ -1,3 +1,4 @@
+using QuantLib.Agents;
 using QuantLib.Agents.Turn;
 using QuantLib.Agents.Quants;
 using QuantLib.Agents.Compare;
@@ -173,9 +174,53 @@ app.MapPost("/compare", async (CompareRequest request, HttpContext httpContext) 
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 });
 
+// ──────────────────────────────────────────────────────────
+// Chat endpoint (direct single-agent conversation)
+// ──────────────────────────────────────────────────────────
+app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =>
+{
+    logger.LogInformation("Chat request to agent: {Agent}", request.Agent);
+
+    httpContext.Response.ContentType = "text/event-stream";
+    httpContext.Response.Headers.CacheControl = "no-cache";
+    httpContext.Response.Headers.Connection = "keep-alive";
+
+    var searchConnectionId = app.Configuration["AZURE_AI_SEARCH_CONNECTION_ID"];
+    var searchIndexName = app.Configuration["AZURE_AI_SEARCH_INDEX_NAME"];
+
+    QuantAgent agent = request.Agent.ToLowerInvariant() switch
+    {
+        "alpha" => new AlphaQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<AlphaQuantAgent>()),
+        "pricing" => new PricingQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<PricingQuantAgent>()),
+        "risk" => new RiskQuantAgent(apiProjectClient, apiDeploymentName, searchConnectionId, searchIndexName, loggerFactory.CreateLogger<RiskQuantAgent>()),
+        _ => throw new ArgumentException($"Unknown agent: {request.Agent}")
+    };
+
+    var prompt = request.Message;
+    if (request.History is { Count: > 0 })
+    {
+        var historyText = string.Join("\n", request.History.Select(h => $"{h.Role}: {h.Content}"));
+        prompt = $"Conversation so far:\n{historyText}\n\nUser: {request.Message}";
+    }
+
+    var startEvent = new { type = "AgentStarted", agentName = agent.Name, specialty = agent.Specialty, timestamp = DateTime.UtcNow };
+    await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(startEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
+    await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+
+    var response = await agent.RunAsync(prompt);
+
+    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = response, timestamp = DateTime.UtcNow };
+    await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(responseEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
+    await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+
+    await httpContext.Response.WriteAsync("data: [DONE]\n\n", httpContext.RequestAborted);
+    await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
+});
+
 await app.RunAsync();
 
-record ChatRequest(string Message);
+record AgentChatRequest(string Agent, string Message, List<ChatHistoryItem>? History = null);
+record ChatHistoryItem(string Role, string Content);
 record TurnRequest(string Topic);
 record DebateRequest(string Topic);
 record ResearchRequest(string Topic);
