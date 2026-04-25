@@ -1,0 +1,629 @@
+@page "/research"
+@using quantagent_web.Models
+@using quantagent_web.Services
+@inject IResearchService ResearchService
+@rendermode InteractiveServer
+
+<PageTitle>Research</PageTitle>
+
+<div class="research-container">
+    <div class="research-header">
+        <h1>🔬 Research</h1>
+        <p class="subtitle">Submit a research topic and watch concurrent agents analyze it in real-time swimming lanes.</p>
+    </div>
+
+    <div class="query-section">
+        <div class="query-input-group">
+            <textarea @bind="topicText"
+                      @bind:event="oninput"
+                      placeholder="Enter your research topic... e.g., 'Impact of rising interest rates on tech sector valuations'"
+                      rows="3"
+                      disabled="@isRunning"
+                      class="query-input"></textarea>
+            <button class="btn-run" @onclick="StartResearch" disabled="@(isRunning || string.IsNullOrWhiteSpace(topicText))">
+                @if (isRunning)
+                {
+                    <span class="spinner"></span>
+                    <span>Researching...</span>
+                }
+                else
+                {
+                    <span>🚀 Start Research</span>
+                }
+            </button>
+        </div>
+
+        <div class="sample-queries">
+            <span class="sample-label">Try:</span>
+            @foreach (var sample in sampleTopics)
+            {
+                <button class="sample-btn" @onclick="() => SetTopic(sample)" disabled="@isRunning">@sample</button>
+            }
+        </div>
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <div class="error-banner">
+            <strong>⚠️ Error:</strong> @errorMessage
+        </div>
+    }
+
+    @if (hasStarted)
+    {
+        <div class="status-bar">
+            <div class="status-left">
+                <h2>📊 Agent Analysis</h2>
+                @if (currentRound > 0)
+                {
+                    <span class="round-badge">Round @currentRound</span>
+                }
+            </div>
+            @if (isRunning)
+            {
+                <span class="status-running">● Live</span>
+            }
+            else
+            {
+                <span class="status-complete">✓ Complete</span>
+            }
+        </div>
+
+        <div class="swim-lanes">
+            @foreach (var lane in lanes)
+            {
+                <div class="swim-lane" style="border-top-color: @lane.Value.Color;">
+                    <div class="lane-header" style="background: @(lane.Value.Color)15; border-bottom-color: @lane.Value.Color;">
+                        <span class="lane-avatar">@lane.Value.Avatar</span>
+                        <span class="lane-title">@lane.Key</span>
+                        @if (lane.Value.IsWorking)
+                        {
+                            <span class="lane-status working">analyzing...</span>
+                        }
+                    </div>
+                    <div class="lane-body">
+                        @foreach (var evt in lane.Value.Events)
+                        {
+                            <div class="lane-event @GetEventCssClass(evt.Type)">
+                                <div class="event-meta">
+                                    <span class="event-round">R@(evt.Round)</span>
+                                    <span class="event-time">@evt.Timestamp.ToString("HH:mm:ss")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(evt.Message))
+                                {
+                                    <div class="event-content">
+                                        @((MarkupString)FormatContent(evt.Message))
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (lane.Value.IsWorking)
+                        {
+                            <div class="lane-event thinking">
+                                <div class="thinking-dots"><span></span><span></span><span></span></div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(finalReport))
+        {
+            <div class="final-report">
+                <h2>📋 Final Report</h2>
+                <div class="report-content">
+                    @((MarkupString)FormatContent(finalReport))
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .research-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .research-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .research-header h1 {
+        font-size: 1.75rem;
+        color: #1a1a2e;
+        margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .query-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .query-input-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .query-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        resize: vertical;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        min-height: 80px;
+    }
+
+    .query-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .query-input:disabled {
+        background: #f8f9fa;
+        color: #999;
+    }
+
+    .btn-run {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 80px;
+        transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .btn-run:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .btn-run:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .sample-queries {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        align-items: center;
+    }
+
+    .sample-label {
+        font-size: 0.8rem;
+        color: #999;
+        font-weight: 500;
+    }
+
+    .sample-btn {
+        background: #f0f0f5;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.2s;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sample-btn:hover:not(:disabled) {
+        background: #e8e8f0;
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    .sample-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .error-banner {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .status-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .status-left h2 {
+        font-size: 1.15rem;
+        color: #1a1a2e;
+        margin: 0;
+    }
+
+    .round-badge {
+        background: #667eea;
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-running {
+        color: #22c55e;
+        font-weight: 600;
+        font-size: 0.85rem;
+        animation: pulse 1.5s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .status-complete {
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    /* Swimming Lanes */
+    .swim-lanes {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .swim-lane {
+        background: #f8f9fb;
+        border-radius: 10px;
+        border-top: 3px solid #ddd;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 200px;
+    }
+
+    .lane-header {
+        padding: 0.6rem 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .lane-avatar {
+        font-size: 1.1rem;
+    }
+
+    .lane-title {
+        color: #1a1a2e;
+    }
+
+    .lane-status.working {
+        margin-left: auto;
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #22c55e;
+        animation: pulse 1.5s infinite;
+    }
+
+    .lane-body {
+        padding: 0.5rem;
+        overflow-y: auto;
+        max-height: 55vh;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .lane-event {
+        background: white;
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .lane-event.event-summary {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .lane-event.event-error {
+        border-left: 3px solid #ef4444;
+        background: #fef2f2;
+    }
+
+    .event-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.3rem;
+    }
+
+    .event-round {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #667eea;
+        background: #667eea15;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+    }
+
+    .event-time {
+        font-size: 0.65rem;
+        color: #999;
+    }
+
+    .event-content {
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: #374151;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .thinking-dots {
+        display: flex;
+        gap: 4px;
+        padding: 0.4rem 0;
+        justify-content: center;
+    }
+
+    .thinking-dots span {
+        width: 6px;
+        height: 6px;
+        background: #94a3b8;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @@keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+
+    .final-report {
+        background: linear-gradient(135deg, #f8f9fb 0%, #eef1f8 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border-top: 3px solid #667eea;
+    }
+
+    .final-report h2 {
+        font-size: 1.15rem;
+        color: #1a1a2e;
+        margin: 0 0 1rem 0;
+    }
+
+    .report-content {
+        font-size: 0.9rem;
+        line-height: 1.65;
+        color: #374151;
+        white-space: pre-wrap;
+    }
+
+    @@media (max-width: 900px) {
+        .swim-lanes {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .swim-lanes {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private string topicText = string.Empty;
+    private bool isRunning;
+    private bool hasStarted;
+    private string? errorMessage;
+    private string finalReport = string.Empty;
+    private int currentRound;
+    private CancellationTokenSource? cts;
+
+    private readonly Dictionary<string, LaneData> lanes = new()
+    {
+        ["Pricing Quant"] = new("💰", "#3b82f6"),
+        ["Risk Quant"] = new("🛡️", "#ef4444"),
+        ["Alpha Quant"] = new("📈", "#22c55e"),
+        ["Orchestrator"] = new("🎯", "#f59e0b"),
+    };
+
+    private readonly string[] sampleTopics =
+    [
+        "Impact of rising interest rates on tech sector valuations",
+        "Opportunities in emerging market bonds amid geopolitical shifts",
+        "Risk analysis of concentrated AI sector exposure in portfolios",
+        "Hedging strategies for commodity price volatility"
+    ];
+
+    private void SetTopic(string topic) => topicText = topic;
+
+    private async Task StartResearch()
+    {
+        if (string.IsNullOrWhiteSpace(topicText) || isRunning)
+            return;
+
+        isRunning = true;
+        hasStarted = true;
+        errorMessage = null;
+        finalReport = string.Empty;
+        currentRound = 0;
+        foreach (var lane in lanes.Values)
+            lane.Reset();
+
+        cts = new CancellationTokenSource();
+        StateHasChanged();
+
+        try
+        {
+            await foreach (var evt in ResearchService.StreamResearchAsync(topicText, cts.Token))
+            {
+                HandleEvent(evt);
+                StateHasChanged();
+                await Task.Delay(50);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            foreach (var lane in lanes.Values)
+                lane.IsWorking = false;
+            isRunning = false;
+            cts?.Dispose();
+            cts = null;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleEvent(ResearchEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case "RoundStarted":
+                currentRound = evt.Round;
+                break;
+
+            case "AgentStarted":
+                if (lanes.TryGetValue(evt.AgentName, out var startLane))
+                    startLane.IsWorking = true;
+                break;
+
+            case "AgentCompleted":
+                if (lanes.TryGetValue(evt.AgentName, out var completeLane))
+                {
+                    completeLane.IsWorking = false;
+                    completeLane.Events.Add(evt);
+                }
+                break;
+
+            case "OrchestratorSummary":
+            case "ConsensusReached":
+            case "MaxRoundsReached":
+                if (lanes.TryGetValue("Orchestrator", out var orchLane))
+                    orchLane.Events.Add(evt);
+                break;
+
+            case "FinalReportStarted":
+                if (lanes.TryGetValue("Orchestrator", out var finalLane))
+                    finalLane.IsWorking = true;
+                break;
+
+            case "FinalReportCompleted":
+                if (lanes.TryGetValue("Orchestrator", out var reportLane))
+                    reportLane.IsWorking = false;
+                finalReport = evt.Message;
+                break;
+
+            case "Error":
+                // Show errors in the relevant agent lane or orchestrator
+                var targetLane = !string.IsNullOrEmpty(evt.AgentName) && lanes.ContainsKey(evt.AgentName)
+                    ? evt.AgentName : "Orchestrator";
+                if (lanes.TryGetValue(targetLane, out var errLane))
+                    errLane.Events.Add(evt);
+                break;
+        }
+    }
+
+    private static string GetEventCssClass(string type) => type switch
+    {
+        "OrchestratorSummary" => "event-summary",
+        "Error" => "event-error",
+        _ => ""
+    };
+
+    private static string FormatContent(string content)
+    {
+        content = System.Net.WebUtility.HtmlEncode(content);
+        content = System.Text.RegularExpressions.Regex.Replace(
+            content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        return content;
+    }
+
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+
+    private class LaneData
+    {
+        public string Avatar { get; }
+        public string Color { get; }
+        public bool IsWorking { get; set; }
+        public List<ResearchEvent> Events { get; } = new();
+
+        public LaneData(string avatar, string color)
+        {
+            Avatar = avatar;
+            Color = color;
+        }
+
+        public void Reset()
+        {
+            IsWorking = false;
+            Events.Clear();
+        }
+    }
+}
