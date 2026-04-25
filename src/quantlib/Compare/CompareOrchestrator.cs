@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using Azure.AI.Projects;
-using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Compare;
@@ -34,23 +34,6 @@ public class CompareOrchestrator
         _orchestrator = new CompareOrchestratorAgent(aiProjectClient, orchestratorDeploymentName, logger);
     }
 
-    private Workflow BuildRoundWorkflow()
-    {
-        var dispatchExecutor = new CompareRoundDispatchExecutor();
-        var executors = _agents
-            .Select(agent => new CompareAgentExecutor(
-                $"compare-{agent.ModelName.Replace(".", "-").Replace(" ", "-").ToLowerInvariant()}-executor",
-                agent,
-                _logger))
-            .ToList();
-
-        WorkflowBuilder builder = new(dispatchExecutor);
-        builder.AddFanOutEdge(dispatchExecutor, [.. executors])
-               .WithOutputFrom([.. executors]);
-
-        return builder.Build();
-    }
-
     public async IAsyncEnumerable<CompareEvent> RunStreamingAsync(
         string userInput,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -79,32 +62,41 @@ public class CompareOrchestrator
             }
 
             var roundInput = new CompareRoundInput(userInput, rounds);
-            var workflow = BuildRoundWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
+            var channel = Channel.CreateUnbounded<CompareEvent>();
+
+            var tasks = _agents.Select(agent => Task.Run(async () =>
+            {
+                var text = new StringBuilder();
+                string prompt = CompareAgentExecutor.BuildPrompt(roundInput, agent.ModelName);
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken))
+                {
+                    text.Append(delta);
+                    await channel.Writer.WriteAsync(CompareEvent.Delta(round, agent.ModelName, agent.ModelName, delta), cancellationToken);
+                }
+                await channel.Writer.WriteAsync(CompareEvent.Completed(round, agent.ModelName, agent.ModelName, text.ToString()), cancellationToken);
+            }, cancellationToken)).ToArray();
+
+            _ = Task.WhenAll(tasks).ContinueWith(
+                t => channel.Writer.TryComplete(t.Exception?.InnerException),
+                TaskScheduler.Default);
 
             var responses = new List<CompareResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
+            await foreach (var compareEvent in channel.Reader.ReadAllAsync(cancellationToken))
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is CompareResponse response)
-                {
-                    responses.Add(response);
-                    yield return CompareEvent.Completed(round, response.ModelName, response.DeploymentName, response.Message, response.Citations);
-                }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                    yield return CompareEvent.ErrorEvent(round, errorEvt.Exception?.Message ?? "Unknown error");
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                    yield return CompareEvent.ErrorEvent(round, $"Executor {failedEvt.ExecutorId} failed");
-                }
+                yield return compareEvent;
+                if (compareEvent.Type == CompareEventType.AgentCompleted)
+                    responses.Add(new CompareResponse(compareEvent.AgentName, compareEvent.AgentName, compareEvent.Message));
             }
+            await Task.WhenAll(tasks);
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
-            var summary = summaryResult.Text;
+            var summaryText = new StringBuilder();
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            {
+                summaryText.Append(delta);
+                yield return CompareEvent.OrchestratorDeltaEvent(round, delta);
+            }
+            var summary = summaryText.ToString();
             rounds.Add(new CompareRound(round, responses, summary));
 
             yield return CompareEvent.Summary(round, summary);
@@ -123,8 +115,13 @@ public class CompareOrchestrator
 
         yield return CompareEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
-        yield return CompareEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
+        var finalText = new StringBuilder();
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        {
+            finalText.Append(delta);
+            yield return CompareEvent.FinalReportDeltaEvent(delta);
+        }
+        yield return CompareEvent.FinalCompleted(finalText.ToString());
     }
 
     private static string Truncate(string text, int maxLength)

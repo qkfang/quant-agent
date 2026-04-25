@@ -34,7 +34,7 @@ internal sealed class CompareAgentExecutor : Executor<CompareRoundInput, Compare
         return new CompareResponse(_agent.ModelName, _agent.ModelName, result.Text, result.Citations);
     }
 
-    private static string BuildPrompt(CompareRoundInput input, string modelName)
+    internal static string BuildPrompt(CompareRoundInput input, string modelName)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {input.UserInput}");

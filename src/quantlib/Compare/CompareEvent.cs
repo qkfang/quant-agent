@@ -6,8 +6,11 @@ public enum CompareEventType
 {
     RoundStarted,
     AgentStarted,
+    AgentDelta,
     AgentCompleted,
+    OrchestratorDelta,
     OrchestratorSummary,
+    FinalReportDelta,
     ConsensusReached,
     MaxRoundsReached,
     FinalReportStarted,
@@ -32,11 +35,20 @@ public record CompareEvent(
     public static CompareEvent Started(int round, string agentName, string specialty, string inputMessage = "")
         => new(CompareEventType.AgentStarted, round, agentName, specialty, "", DateTime.UtcNow, inputMessage);
 
+    public static CompareEvent Delta(int round, string agentName, string specialty, string delta)
+        => new(CompareEventType.AgentDelta, round, agentName, specialty, delta, DateTime.UtcNow);
+
     public static CompareEvent Completed(int round, string agentName, string specialty, string message, IReadOnlyList<SearchCitation>? citations = null)
         => new(CompareEventType.AgentCompleted, round, agentName, specialty, message, DateTime.UtcNow, "", citations);
 
     public static CompareEvent Summary(int round, string message)
         => new(CompareEventType.OrchestratorSummary, round, "Orchestrator", "", message, DateTime.UtcNow);
+
+    public static CompareEvent OrchestratorDeltaEvent(int round, string delta)
+        => new(CompareEventType.OrchestratorDelta, round, "Orchestrator", "", delta, DateTime.UtcNow);
+
+    public static CompareEvent FinalReportDeltaEvent(string delta)
+        => new(CompareEventType.FinalReportDelta, 0, "Orchestrator", "", delta, DateTime.UtcNow);
 
     public static CompareEvent Consensus(int round)
         => new(CompareEventType.ConsensusReached, round, "Orchestrator", "", "All models have reached consensus.", DateTime.UtcNow);

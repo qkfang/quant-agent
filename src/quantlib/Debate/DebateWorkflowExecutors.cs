@@ -34,7 +34,7 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
         return new DebateResponse(_agent.Name, _agent.Specialty, result.Text, result.Citations);
     }
 
-    private static string BuildPrompt(DebateRoundInput input, string specialty)
+    internal static string BuildPrompt(DebateRoundInput input, string specialty)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {input.UserInput}");

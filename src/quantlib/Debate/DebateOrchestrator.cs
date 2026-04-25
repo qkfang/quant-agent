@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using Azure.AI.Projects;
-using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 
 namespace QuantLib.Agents.Quants;
@@ -24,20 +24,6 @@ public class DebateOrchestrator
         _riskQuant = new RiskQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger);
         _alphaQuant = new AlphaQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, bingInstanceName, logger);
         _orchestrator = new DebateOrchestratorAgent(aiProjectClient, deploymentName, logger);
-    }
-
-    private Workflow BuildRoundWorkflow()
-    {
-        var dispatchExecutor = new DebateRoundDispatchExecutor();
-        var pricingExec = new PricingQuantExecutor(_pricingQuant, _logger);
-        var riskExec = new RiskQuantExecutor(_riskQuant, _logger);
-        var alphaExec = new AlphaQuantExecutor(_alphaQuant, _logger);
-
-        WorkflowBuilder builder = new(dispatchExecutor);
-        builder.AddFanOutEdge(dispatchExecutor, [pricingExec, riskExec, alphaExec])
-               .WithOutputFrom(pricingExec, riskExec, alphaExec);
-
-        return builder.Build();
     }
 
     public async IAsyncEnumerable<AgentEvent> RunStreamingAsync(
@@ -69,32 +55,42 @@ public class DebateOrchestrator
             yield return AgentEvent.Started(round, _alphaQuant.Name, _alphaQuant.Specialty, agentInputDesc);
 
             var roundInput = new DebateRoundInput(userInput, rounds);
-            var workflow = BuildRoundWorkflow();
-            await using var run = await InProcessExecution.RunStreamingAsync(workflow, roundInput);
+            var channel = Channel.CreateUnbounded<AgentEvent>();
+            QuantAgent[] allAgents = [_pricingQuant, _riskQuant, _alphaQuant];
+
+            var tasks = allAgents.Select(agent => Task.Run(async () =>
+            {
+                var text = new StringBuilder();
+                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken))
+                {
+                    text.Append(delta);
+                    await channel.Writer.WriteAsync(AgentEvent.Delta(round, agent.Name, agent.Specialty, delta), cancellationToken);
+                }
+                await channel.Writer.WriteAsync(AgentEvent.Completed(round, agent.Name, agent.Specialty, text.ToString()), cancellationToken);
+            }, cancellationToken)).ToArray();
+
+            _ = Task.WhenAll(tasks).ContinueWith(
+                t => channel.Writer.TryComplete(t.Exception?.InnerException),
+                TaskScheduler.Default);
 
             var responses = new List<DebateResponse>();
-            await foreach (var evt in run.WatchStreamAsync())
+            await foreach (var agentEvent in channel.Reader.ReadAllAsync(cancellationToken))
             {
-                if (evt is WorkflowOutputEvent outputEvt && outputEvt.Data is DebateResponse response)
-                {
-                    responses.Add(response);
-                    yield return AgentEvent.Completed(round, response.AgentName, response.Specialty, response.Message, response.Citations);
-                }
-                else if (evt is WorkflowErrorEvent errorEvt)
-                {
-                    _logger.LogError("Workflow error: {Error}", errorEvt.Exception?.Message);
-                    yield return AgentEvent.ErrorEvent(round, errorEvt.Exception?.Message ?? "Unknown error");
-                }
-                else if (evt is ExecutorFailedEvent failedEvt)
-                {
-                    _logger.LogError("Executor {Id} failed: {Data}", failedEvt.ExecutorId, failedEvt.Data);
-                    yield return AgentEvent.ErrorEvent(round, $"Executor {failedEvt.ExecutorId} failed");
-                }
+                yield return agentEvent;
+                if (agentEvent.Type == AgentEventType.AgentCompleted)
+                    responses.Add(new DebateResponse(agentEvent.AgentName, agentEvent.Specialty, agentEvent.Message));
             }
+            await Task.WhenAll(tasks);
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
-            var summary = summaryResult.Text;
+            var summaryText = new StringBuilder();
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            {
+                summaryText.Append(delta);
+                yield return AgentEvent.OrchestratorDeltaEvent(round, delta);
+            }
+            var summary = summaryText.ToString();
             rounds.Add(new DebateRound(round, responses, summary));
 
             yield return AgentEvent.Summary(round, summary);
@@ -113,8 +109,13 @@ public class DebateOrchestrator
 
         yield return AgentEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
-        yield return AgentEvent.FinalCompleted(finalResult.Text, finalResult.Citations);
+        var finalText = new StringBuilder();
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        {
+            finalText.Append(delta);
+            yield return AgentEvent.FinalReportDeltaEvent(delta);
+        }
+        yield return AgentEvent.FinalCompleted(finalText.ToString());
     }
 
     private static string Truncate(string text, int maxLength)
