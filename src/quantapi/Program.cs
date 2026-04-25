@@ -215,9 +215,10 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
     var fullText = new System.Text.StringBuilder();
+    var citations = new List<SearchCitation>();
     try
     {
-        await foreach (var delta in agent.RunStreamingAsync(prompt, httpContext.RequestAborted))
+        await foreach (var delta in agent.RunStreamingAsync(prompt, httpContext.RequestAborted, citations))
         {
             fullText.Append(delta);
             var deltaEvent = new { type = "AgentDelta", agentName = agent.Name, delta };
@@ -235,7 +236,7 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
         return;
     }
 
-    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = fullText.ToString(), timestamp = DateTime.UtcNow };
+    var responseEvent = new { type = "AgentResponse", agentName = agent.Name, specialty = agent.Specialty, message = fullText.ToString(), citations, timestamp = DateTime.UtcNow };
     await httpContext.Response.WriteAsync($"data: {JsonSerializer.Serialize(responseEvent, jsonOptions)}\n\n", httpContext.RequestAborted);
     await httpContext.Response.Body.FlushAsync(httpContext.RequestAborted);
 
@@ -245,7 +246,7 @@ app.MapPost("/chat", async (AgentChatRequest request, HttpContext httpContext) =
 
 await app.RunAsync();
 
-record AgentChatRequest(string Agent, string Message, List<ChatHistoryItem>? History = null);
+record AgentChatRequest(string Agent, string Message, List<ChatHistoryItem>? History);
 record ChatHistoryItem(string Role, string Content);
 record TurnRequest(string Topic);
 record DebateRequest(string Topic);

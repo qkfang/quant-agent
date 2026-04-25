@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Channels;
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
+using QuantLib.Agents;
 
 namespace QuantLib.Agents.Compare;
 
@@ -68,13 +69,14 @@ public class CompareOrchestrator
             var tasks = _agents.Select(agent => Task.Run(async () =>
             {
                 var text = new StringBuilder();
+                var citations = new List<SearchCitation>();
                 string prompt = CompareAgentExecutor.BuildPrompt(roundInput, agent.ModelName);
-                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken))
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations))
                 {
                     text.Append(delta);
                     await channel.Writer.WriteAsync(CompareEvent.Delta(round, agent.ModelName, agent.ModelName, delta), cancellationToken);
                 }
-                await channel.Writer.WriteAsync(CompareEvent.Completed(round, agent.ModelName, agent.ModelName, text.ToString()), cancellationToken);
+                await channel.Writer.WriteAsync(CompareEvent.Completed(round, agent.ModelName, agent.ModelName, text.ToString(), citations), cancellationToken);
             }, cancellationToken)).ToArray();
 
             _ = Task.WhenAll(tasks).ContinueWith(

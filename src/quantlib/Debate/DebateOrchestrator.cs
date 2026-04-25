@@ -61,13 +61,14 @@ public class DebateOrchestrator
             var tasks = allAgents.Select(agent => Task.Run(async () =>
             {
                 var text = new StringBuilder();
+                var citations = new List<SearchCitation>();
                 string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
-                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken))
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations))
                 {
                     text.Append(delta);
                     await channel.Writer.WriteAsync(AgentEvent.Delta(round, agent.Name, agent.Specialty, delta), cancellationToken);
                 }
-                await channel.Writer.WriteAsync(AgentEvent.Completed(round, agent.Name, agent.Specialty, text.ToString()), cancellationToken);
+                await channel.Writer.WriteAsync(AgentEvent.Completed(round, agent.Name, agent.Specialty, text.ToString(), citations), cancellationToken);
             }, cancellationToken)).ToArray();
 
             _ = Task.WhenAll(tasks).ContinueWith(

@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
+using QuantLib.Agents;
 using QuantLib.Agents.Quants;
 
 namespace QuantLib.Agents.Turn;
@@ -59,7 +60,8 @@ public class TurnOrchestrator
                 _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", agent.Name, agent.Specialty);
                 string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
                 var agentText = new StringBuilder();
-                await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken))
+                var citations = new List<SearchCitation>();
+                await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken, citations))
                 {
                     agentText.Append(delta);
                     yield return AgentEvent.Delta(round, agent.Name, agent.Specialty, delta);
@@ -67,7 +69,7 @@ public class TurnOrchestrator
                 _logger.LogInformation("Agent {Name} completed analysis.", agent.Name);
 
                 responses.Add(new TurnResponse(agent.Name, agent.Specialty, agentText.ToString()));
-                yield return AgentEvent.Completed(round, agent.Name, agent.Specialty, agentText.ToString());
+                yield return AgentEvent.Completed(round, agent.Name, agent.Specialty, agentText.ToString(), citations);
             }
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);

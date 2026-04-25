@@ -87,7 +87,7 @@ public abstract class BaseAgent
         return new AgentResult(text, citations);
     }
 
-    public async IAsyncEnumerable<string> RunStreamingAsync(string message, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<string> RunStreamingAsync(string message, [EnumeratorCancellation] CancellationToken cancellationToken = default, List<SearchCitation>? citationsOutput = null)
     {
         var sw = Stopwatch.StartNew();
 
@@ -96,10 +96,12 @@ public abstract class BaseAgent
             InputItems = { ResponseItem.CreateUserMessageItem(message) }
         };
 
+        ResponseResult? completedResponse = null;
+
         while (true)
         {
             var pendingApprovals = new List<string>();
-            ResponseResult? completedResponse = null;
+            completedResponse = null;
 
             await foreach (var update in _responseClient.CreateResponseStreamingAsync(nextOptions, cancellationToken).WithCancellation(cancellationToken))
             {
@@ -124,6 +126,12 @@ public abstract class BaseAgent
 
         sw.Stop();
         _logger.LogInformation("Agent {AgentId} streaming completed in {Duration}ms", _agentId, sw.ElapsedMilliseconds);
+
+        if (citationsOutput != null)
+        {
+            foreach (var citation in ExtractCitations(completedResponse))
+                citationsOutput.Add(citation);
+        }
     }
 
     private IReadOnlyList<SearchCitation> ExtractCitations(ResponseResult? result)
