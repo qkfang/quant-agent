@@ -92,24 +92,6 @@ resource gpt41Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
   }
 }
 
-resource gpt52Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: aiHub
-  name: 'gpt-5.2'
-  dependsOn: [gpt41Deployment]
-  sku: {
-    name: 'GlobalStandard'
-    capacity: 1000
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-5.2'
-      version: '2026-01-15'
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
 
 resource aiSearchConnection 'Microsoft.CognitiveServices/accounts/connections@2025-10-01-preview' = if (aiSearchEndpoint != '') {
   parent: aiHub
@@ -145,7 +127,6 @@ output endpoint string = aiHub.properties.endpoint
 output deploymentName string = gpt5oDeployment.name
 output gpt4oDeploymentName string = gpt4oDeployment.name
 output gpt41DeploymentName string = gpt41Deployment.name
-output gpt52DeploymentName string = gpt52Deployment.name
 output projectName string = aiProject.name
 output location string = location
 output principalId string = aiHub.identity.principalId
