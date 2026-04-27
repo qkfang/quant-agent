@@ -40,6 +40,7 @@ internal class DebateOrchestratorAgent : BaseAgent
         - Note confidence levels and any remaining uncertainty
 
         Keep summaries concise and structured. Use clear section headers.
+        Limit every response to 250 words or fewer.
         """;
 
     public DebateOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)

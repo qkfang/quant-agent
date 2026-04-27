@@ -27,6 +27,7 @@ internal class CompareOrchestratorAgent : BaseAgent
         - Highlight any interesting divergences in reasoning style
 
         Keep summaries concise and structured. Use clear section headers.
+        Limit every response to 250 words or fewer.
         """;
 
     public CompareOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)

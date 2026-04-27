@@ -37,6 +37,7 @@ internal class TurnOrchestratorAgent : BaseAgent
         - Note any unresolved debates or areas of uncertainty
 
         Keep summaries concise and structured. Use clear section headers.
+        Limit every response to 250 words or fewer.
         """;
 
     public TurnOrchestratorAgent(AIProjectClient aiProjectClient, string deploymentName, ILogger? logger = null)
