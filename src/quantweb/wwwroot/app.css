@@ -59,7 +59,7 @@ h1:focus {
     text-align: start;
 }
 /* Markdown rendered content (tables, code, etc.) */
-.msg-body table, .orch-body table, .seq-body table {
+.msg-body table, .orch-body table, .seq-body table, .report-content table {
     border-collapse: collapse;
     margin: 0.6rem 0;
     font-size: 0.88rem;
@@ -68,50 +68,52 @@ h1:focus {
 }
 .msg-body th, .msg-body td,
 .orch-body th, .orch-body td,
-.seq-body th, .seq-body td {
+.seq-body th, .seq-body td,
+.report-content th, .report-content td {
     border: 1px solid #d0d4dc;
     padding: 0.35rem 0.6rem;
     text-align: left;
     vertical-align: top;
 }
-.msg-body th, .orch-body th, .seq-body th {
+.msg-body th, .orch-body th, .seq-body th, .report-content th {
     background-color: #f1f3f7;
     font-weight: 600;
 }
 .msg-body tr:nth-child(even) td,
 .orch-body tr:nth-child(even) td,
-.seq-body tr:nth-child(even) td {
+.seq-body tr:nth-child(even) td,
+.report-content tr:nth-child(even) td {
     background-color: #fafbfd;
 }
-.msg-body code, .orch-body code, .seq-body code {
+.msg-body code, .orch-body code, .seq-body code, .report-content code {
     background-color: #f3f4f6;
     padding: 0.1rem 0.3rem;
     border-radius: 3px;
     font-size: 0.85em;
 }
-.msg-body pre, .orch-body pre, .seq-body pre {
+.msg-body pre, .orch-body pre, .seq-body pre, .report-content pre {
     background-color: #f6f8fa;
     padding: 0.6rem 0.8rem;
     border-radius: 4px;
     overflow-x: auto;
 }
-.msg-body pre code, .orch-body pre code, .seq-body pre code {
+.msg-body pre code, .orch-body pre code, .seq-body pre code, .report-content pre code {
     background: transparent;
     padding: 0;
 }
-.msg-body h1, .orch-body h1, .seq-body h1 {
+.msg-body h1, .orch-body h1, .seq-body h1, .report-content h1 {
     font-size: 1.05rem;
     font-weight: 600;
     margin: 0.6rem 0 0.35rem;
     line-height: 1.3;
 }
-.msg-body h2, .orch-body h2, .seq-body h2 {
+.msg-body h2, .orch-body h2, .seq-body h2, .report-content h2 {
     font-size: 0.98rem;
     font-weight: 600;
     margin: 0.5rem 0 0.3rem;
     line-height: 1.3;
 }
-.msg-body h3, .orch-body h3, .seq-body h3 {
+.msg-body h3, .orch-body h3, .seq-body h3, .report-content h3 {
     font-size: 0.92rem;
     font-weight: 600;
     margin: 0.45rem 0 0.25rem;
@@ -119,23 +121,43 @@ h1:focus {
 }
 .msg-body ul, .msg-body ol,
 .orch-body ul, .orch-body ol,
-.seq-body ul, .seq-body ol {
-    margin: 0.1rem 0;
+.seq-body ul, .seq-body ol,
+.report-content ul, .report-content ol {
+    margin: 0.05rem 0;
     padding-left: 1rem;
     font-size: 0.88rem;
 }
-.msg-body li, .orch-body li, .seq-body li {
+.msg-body ol, .orch-body ol, .seq-body ol, .report-content ol {
+    padding-left: 1.1rem;
+}
+.msg-body li, .orch-body li, .seq-body li, .report-content li {
     margin: 0;
     padding: 0;
     line-height: 1.25;
 }
-.msg-body li > p, .orch-body li > p, .seq-body li > p {
+.msg-body li + li, .orch-body li + li, .seq-body li + li, .report-content li + li {
+    margin-top: 0.05rem;
+}
+.msg-body li > p, .orch-body li > p, .seq-body li > p, .report-content li > p {
     margin: 0;
 }
-.msg-body p, .orch-body p, .seq-body p {
-    margin: 0.2rem 0;
+.msg-body li > ul, .msg-body li > ol,
+.orch-body li > ul, .orch-body li > ol,
+.seq-body li > ul, .seq-body li > ol,
+.report-content li > ul, .report-content li > ol {
+    margin: 0;
 }
-.msg-body br, .orch-body br, .seq-body br {
-    line-height: 0.8;
+.msg-body p, .orch-body p, .seq-body p, .report-content p {
+    margin: 0.05rem 0;
+    line-height: 1.3;
+}
+.msg-body p + p, .orch-body p + p, .seq-body p + p, .report-content p + p {
+    margin-top: 0.1rem;
+}
+.msg-body br, .orch-body br, .seq-body br, .report-content br {
+    line-height: 0.6;
+}
+.msg-body p:empty, .orch-body p:empty, .seq-body p:empty, .report-content p:empty {
+    display: none;
 }
 

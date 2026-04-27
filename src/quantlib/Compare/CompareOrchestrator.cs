@@ -58,12 +58,12 @@ public class CompareOrchestrator
             string agentInputDesc;
             if (round == 1)
             {
-                agentInputDesc = $"Provide initial analysis on: {Truncate(userInput, 200)}";
+                agentInputDesc = $"Provide initial analysis on: {userInput}";
             }
             else
             {
                 var lastSummary = rounds[^1].OrchestratorSummary;
-                agentInputDesc = $"Refine your analysis. Orchestrator feedback:\n{Truncate(lastSummary, 300)}";
+                agentInputDesc = $"Refine your analysis. Orchestrator feedback:\n{lastSummary}";
             }
 
             foreach (var agent in _agents)
@@ -133,15 +133,6 @@ public class CompareOrchestrator
             yield return CompareEvent.FinalReportDeltaEvent(delta);
         }
         yield return CompareEvent.FinalCompleted(finalText.ToString());
-    }
-
-    private static string Truncate(string text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
-        if (text.Length <= maxLength)
-            return text;
-        return text[..maxLength] + "...";
     }
 
     public async Task RunConsoleAsync(string userInput)

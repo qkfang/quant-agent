@@ -224,24 +224,15 @@ public class TurnOrchestrator
     private static string BuildInputDescription(int round, int agentIndex, string userInput, string orchestratorGuidance, IReadOnlyList<TurnRound> previousRounds)
     {
         if (agentIndex == 0 && round == 1)
-            return $"Initial analysis: {Truncate(userInput, 200)}";
+            return $"Initial analysis: {userInput}";
 
         if (!string.IsNullOrEmpty(orchestratorGuidance))
-            return $"Orchestrator guidance: {Truncate(orchestratorGuidance, 300)}";
+            return $"Orchestrator guidance: {orchestratorGuidance}";
 
         if (previousRounds.Count > 0)
-            return $"Refine analysis based on turn {round - 1} feedback: {Truncate(previousRounds[^1].OrchestratorSummary, 200)}";
+            return $"Refine analysis based on turn {round - 1} feedback: {previousRounds[^1].OrchestratorSummary}";
 
-        return $"Analyzing: {Truncate(userInput, 200)}";
-    }
-
-    private static string Truncate(string text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
-        if (text.Length <= maxLength)
-            return text;
-        return text[..maxLength] + "...";
+        return $"Analyzing: {userInput}";
     }
 
     private static string BuildAgentPrompt(string userInput, IReadOnlyList<TurnRound> previousRounds,

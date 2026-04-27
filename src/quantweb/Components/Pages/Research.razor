@@ -84,7 +84,7 @@
                 <span class="round-label">Round @round.RoundNumber</span>
             </div>
 
-            <!-- Row 1: Orchestrator dispatches to agents -->
+            <!-- Row 1: Orchestrator dispatches to agents (shared input across all agents) -->
             <div class="grid-row dispatch-row">
                 <div class="grid-cell orch-cell">
                     <div class="msg msg-input fade-in">
@@ -92,18 +92,20 @@
                         <div class="msg-body">@((MarkupString)FormatContent(GetOrchestratorInputLabel(round.RoundNumber)))</div>
                     </div>
                 </div>
-                @foreach (var agentName in agentOrder)
-                {
-                    <div class="grid-cell agent-cell">
-                        @if (round.Agents.TryGetValue(agentName, out var dispatchAgent) && !string.IsNullOrEmpty(dispatchAgent.InputMessage))
-                        {
-                            <div class="msg msg-input fade-in">
-                                <span class="msg-label">📥 INPUT</span>
-                                <div class="msg-body">@((MarkupString)FormatContent(dispatchAgent.InputMessage))</div>
-                            </div>
-                        }
-                    </div>
+                @{
+                    var sharedInput = agentOrder
+                        .Select(n => round.Agents.TryGetValue(n, out var a) ? a.InputMessage : null)
+                        .FirstOrDefault(s => !string.IsNullOrEmpty(s));
                 }
+                <div class="grid-cell agent-cell agents-merged">
+                    @if (!string.IsNullOrEmpty(sharedInput))
+                    {
+                        <div class="msg msg-input fade-in">
+                            <span class="msg-label">📥 INPUT — Pricing • Risk • Alpha</span>
+                            <div class="msg-body">@((MarkupString)FormatContent(sharedInput))</div>
+                        </div>
+                    }
+                </div>
             </div>
 
             <!-- Row 2: Agent outputs -->
@@ -490,10 +492,9 @@
         grid-column: 1 / -1;
     }
 
-    /* Constrain agent output cells so a single response cannot exceed the viewport */
-    .output-row .grid-cell {
-        max-height: calc(100vh - 220px);
-        overflow-y: auto;
+    /* Merge the 3 agent input columns into one in the dispatch row */
+    .dispatch-row .grid-cell.agents-merged {
+        grid-column: 2 / -1;
     }
 
     /* Message Bubbles */
@@ -517,10 +518,17 @@
     }
 
     .msg-body {
-        white-space: pre-wrap;
         word-break: break-word;
         color: #374151;
+        line-height: 1.5;
     }
+
+    .msg-body p { margin: 0.25rem 0; }
+    .msg-body h1, .msg-body h2, .msg-body h3, .msg-body h4, .msg-body h5 { margin: 0.4rem 0 0.2rem; }
+    .msg-body ul, .msg-body ol { margin: 0.25rem 0; padding-left: 1.25rem; }
+    .msg-body li { margin: 0.1rem 0; }
+    .msg-body li > p { margin: 0; }
+    .msg-body pre { margin: 0.3rem 0; }
 
     .msg-input {
         background: #eef2ff;
@@ -634,10 +642,16 @@
 
     .report-content {
         font-size: 0.9rem;
-        line-height: 1.65;
+        line-height: 1.55;
         color: #374151;
-        white-space: pre-wrap;
     }
+
+    .report-content p { margin: 0.3rem 0; }
+    .report-content h1, .report-content h2, .report-content h3, .report-content h4, .report-content h5 { margin: 0.5rem 0 0.25rem; }
+    .report-content ul, .report-content ol { margin: 0.3rem 0; padding-left: 1.25rem; }
+    .report-content li { margin: 0.1rem 0; }
+    .report-content li > p { margin: 0; }
+    .report-content pre { margin: 0.3rem 0; }
 
     .citations-section {
         margin-top: 0.5rem;
