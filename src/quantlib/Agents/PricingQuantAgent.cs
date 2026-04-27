@@ -24,7 +24,12 @@ public class PricingQuantAgent : QuantAgent
         - Discuss relevant pricing frameworks and their implications
         - Consider the impact of interest rates, volatility, and credit spreads
 
-        IMPORTANT: You MUST always structure your response as a list of "Quant Opinions".
+        IMPORTANT: You MUST always structure your response as a list of exactly 2 "Quant Opinions" (no more, no less).
+        You MUST ground your analysis using the available tools:
+        - Use the knowledge base (Azure AI Search) to retrieve internal research, models, and historical references
+        - Use Bing search to gather current market data, news, and external context
+        Cite which source (knowledge base or Bing) informed each opinion in the Evidence section.
+
         Each opinion must include:
         1. A clear, concise opinion statement
         2. Supporting evidence (data points, model outputs, historical references, or analytical reasoning)

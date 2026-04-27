@@ -19,7 +19,7 @@ public class CompareAgent : BaseAgent
         - Identify risks, opportunities, and uncertainties
         - Be concise but comprehensive
 
-        Keep responses focused and under 400 words.
+        Keep responses focused and under 200 words.
         When asked to refine, address specific feedback and state your updated position clearly.
         """;
 
