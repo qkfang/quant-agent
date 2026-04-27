@@ -1,15 +1,33 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
+<div class="page" id="layout-page">
     <div class="sidebar">
         <NavMenu />
+        <button type="button" class="sidebar-toggle" title="Hide side panel"
+                onclick="document.getElementById('layout-page').classList.toggle('sidebar-hidden')">
+            <span aria-hidden="true">&#171;</span>
+        </button>
     </div>
+
+    <button type="button" class="sidebar-show" title="Show side panel"
+            onclick="document.getElementById('layout-page').classList.toggle('sidebar-hidden')">
+        <span aria-hidden="true">&#187;</span>
+    </button>
 
     <main>
         <div class="top-row px-4">
-            <span class="app-title">Multi-Model Scenario Analysis</span>
+            <span class="app-title">Quants Analysis</span>
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <button type="button" class="fullscreen-toggle" title="Toggle full screen"
+                    onclick="document.getElementById('layout-page').classList.toggle('full-screen')">
+                <span aria-hidden="true">&#9974;</span>
+            </button>
         </div>
+
+        <button type="button" class="fullscreen-exit-floating" title="Exit full screen"
+                onclick="document.getElementById('layout-page').classList.toggle('full-screen')">
+            <span aria-hidden="true">&#10005;</span>
+        </button>
 
         <article class="content px-4">
             @Body

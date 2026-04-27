@@ -189,9 +189,6 @@
                             </div>
                         }
                     </div>
-                    <div class="grid-cell agent-cell"></div>
-                    <div class="grid-cell agent-cell"></div>
-                    <div class="grid-cell agent-cell"></div>
                 </div>
             }
         }
@@ -487,6 +484,16 @@
     .grid-cell {
         min-height: 2rem;
         padding: 0.25rem;
+    }
+
+    .grid-cell.full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* Constrain agent output cells so a single response cannot exceed the viewport */
+    .output-row .grid-cell {
+        max-height: calc(100vh - 220px);
+        overflow-y: auto;
     }
 
     /* Message Bubbles */
@@ -853,13 +860,7 @@
             : $"Synthesizing round {roundNumber} responses...";
     }
 
-    private static string FormatContent(string content)
-    {
-        content = System.Net.WebUtility.HtmlEncode(content);
-        content = System.Text.RegularExpressions.Regex.Replace(
-            content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
-        return content;
-    }
+    private static string FormatContent(string content) => MarkdownRenderer.Render(content);
 
     public void Dispose()
     {

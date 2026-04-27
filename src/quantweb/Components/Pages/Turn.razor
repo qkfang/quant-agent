@@ -815,13 +815,7 @@
         _ => "🤖"
     };
 
-    private static string FormatContent(string content)
-    {
-        content = System.Net.WebUtility.HtmlEncode(content);
-        content = System.Text.RegularExpressions.Regex.Replace(
-            content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
-        return content;
-    }
+    private static string FormatContent(string content) => MarkdownRenderer.Render(content);
 
     public void Dispose()
     {

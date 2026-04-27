@@ -56,6 +56,12 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        transition: width 0.2s ease, margin-left 0.2s ease;
+    }
+
+    .page.sidebar-hidden .sidebar {
+        width: 0;
+        overflow: hidden;
     }
 
     .top-row {
@@ -74,6 +80,106 @@ main {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
+}
+
+.page.full-screen .sidebar {
+    display: none;
+}
+
+.page.full-screen .top-row {
+    display: none;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.sidebar-show {
+    display: none;
+    position: fixed;
+    top: 0.75rem;
+    left: 0.5rem;
+    background: #052767;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+}
+
+.page.sidebar-hidden .sidebar-show {
+    display: flex;
+}
+
+.page.full-screen .sidebar-show {
+    display: none;
+}
+
+.sidebar-show:hover {
+    background: #0a3a8c;
+}
+
+.fullscreen-toggle {
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    margin-left: 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+}
+
+.fullscreen-toggle:hover {
+    color: #000;
+}
+
+.fullscreen-exit-floating {
+    display: none;
+    position: fixed;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+}
+
+.page.full-screen .fullscreen-exit-floating {
+    display: flex;
+}
+
+.fullscreen-exit-floating:hover {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 #blazor-error-ui {

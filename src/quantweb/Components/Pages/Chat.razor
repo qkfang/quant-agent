@@ -282,43 +282,7 @@
         _ => ["What is your analysis of current market conditions?"]
     };
 
-    private string FormatContent(string content)
-    {
-        if (string.IsNullOrEmpty(content)) return string.Empty;
-
-        content = System.Text.RegularExpressions.Regex.Replace(content, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
-        content = System.Text.RegularExpressions.Regex.Replace(content, @"\*(.+?)\*", "<em>$1</em>");
-
-        content = System.Text.RegularExpressions.Regex.Replace(content, @"【(\d+:\d+†.+?)】", "<sup class=\"citation\">[$1]</sup>");
-        content = System.Text.RegularExpressions.Regex.Replace(content, @"\[doc(\d+)\]", "<sup class=\"citation\">[doc$1]</sup>");
-
-        var lines = content.Split('\n');
-        var result = new System.Text.StringBuilder();
-        bool inList = false;
-
-        foreach (var line in lines)
-        {
-            var trimmed = line.TrimStart();
-            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
-            {
-                if (!inList) { result.Append("<ul>"); inList = true; }
-                result.Append($"<li>{trimmed[2..]}</li>");
-            }
-            else
-            {
-                if (inList) { result.Append("</ul>"); inList = false; }
-                if (trimmed.StartsWith("# "))
-                    result.Append($"<h4>{trimmed[2..]}</h4>");
-                else if (trimmed.StartsWith("## "))
-                    result.Append($"<h5>{trimmed[3..]}</h5>");
-                else if (!string.IsNullOrWhiteSpace(trimmed))
-                    result.Append($"<p>{line}</p>");
-            }
-        }
-        if (inList) result.Append("</ul>");
-
-        return result.ToString();
-    }
+    private static string FormatContent(string content) => MarkdownRenderer.Render(content);
 
     private class ChatMessage
     {
