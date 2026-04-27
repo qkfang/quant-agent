@@ -81,6 +81,9 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
             sb.AppendLine("- **Confidence:** [High / Medium / Low]");
         }
 
+        sb.AppendLine();
+        sb.AppendLine("IMPORTANT: Keep your entire response under 150 words.");
+
         return sb.ToString();
     }
 }

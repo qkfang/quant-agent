@@ -9,6 +9,7 @@ namespace QuantLib.Agents.Turn;
 
 public class TurnOrchestrator
 {
+    private const int MinRounds = 3;
     private const int MaxRounds = 10;
 
     private readonly QuantAgent[] _agents;
@@ -84,7 +85,7 @@ public class TurnOrchestrator
 
             yield return AgentEvent.Summary(round, summary);
 
-            if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
+            if (round >= MinRounds && summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
             {
                 yield return AgentEvent.Consensus(round);
                 break;
@@ -182,7 +183,7 @@ public class TurnOrchestrator
             Console.WriteLine($"  \u001b[33m└{'─'.Repeat(40)}┘\u001b[0m");
             Console.WriteLine();
 
-            if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
+            if (round >= MinRounds && summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine("  \u001b[32m✓ Views validated. Consensus reached. Finishing workflow.\u001b[0m");
                 break;
@@ -290,6 +291,9 @@ public class TurnOrchestrator
             sb.AppendLine($"Provide your initial analysis from your specialty perspective ({specialty}).");
         }
 
+        sb.AppendLine();
+        sb.AppendLine("IMPORTANT: Keep your entire response under 150 words.");
+
         return sb.ToString();
     }
 
@@ -371,7 +375,14 @@ public class TurnOrchestrator
         sb.AppendLine("Each agent was guided by you and built upon the previous agent's analysis.");
         sb.AppendLine("Validate whether the combined view is coherent and correct.");
         sb.AppendLine("Identify areas of agreement, disagreement, and gaps.");
-        sb.AppendLine("If the views are validated and agents substantially agree on key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
+        if (currentRound < MinRounds)
+        {
+            sb.AppendLine($"IMPORTANT: A minimum of {MinRounds} turns is required before consensus can be declared. Do NOT include the [CONSENSUS_REACHED] marker in this turn ({currentRound}/{MinRounds}). Continue to surface gaps and questions for the next turn.");
+        }
+        else
+        {
+            sb.AppendLine("If the views are validated and agents substantially agree on key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
+        }
         sb.AppendLine("If there are still significant disagreements or gaps, identify them clearly so agents can address them in the next turn.");
         sb.AppendLine();
         sb.AppendLine("Additionally, pose 2-3 targeted questions for agents to address in the next turn.");

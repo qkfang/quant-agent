@@ -8,6 +8,7 @@ namespace QuantLib.Agents.Quants;
 
 public class DebateOrchestrator
 {
+    private const int MinRounds = 3;
     private const int MaxRounds = 5;
 
     private readonly PricingQuantAgent _pricingQuant;
@@ -96,7 +97,7 @@ public class DebateOrchestrator
 
             yield return AgentEvent.Summary(round, summary);
 
-            if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
+            if (round >= MinRounds && summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
             {
                 yield return AgentEvent.Consensus(round);
                 break;
@@ -197,7 +198,7 @@ public class DebateOrchestrator
             Console.WriteLine($"  \u001b[33m└{'─'.Repeat(40)}┘\u001b[0m");
             Console.WriteLine();
 
-            if (summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
+            if (round >= MinRounds && summary.Contains("[CONSENSUS_REACHED]", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine("  \u001b[32m✓ All agents have reached consensus. Terminating workflow.\u001b[0m");
                 break;
@@ -274,7 +275,14 @@ public class DebateOrchestrator
 
         sb.AppendLine("Present your evaluation under the heading 'Opinion Ledger' with columns: Agent, Opinion, Status, Reasoning.");
         sb.AppendLine();
-        sb.AppendLine("If all key opinions are marked VALID and agents agree, include the exact marker [CONSENSUS_REACHED] in your response.");
+        if (currentRound < MinRounds)
+        {
+            sb.AppendLine($"IMPORTANT: A minimum of {MinRounds} rounds is required before consensus can be declared. Do NOT include the [CONSENSUS_REACHED] marker in this round ({currentRound}/{MinRounds}). Continue to challenge opinions and surface gaps.");
+        }
+        else
+        {
+            sb.AppendLine("If all key opinions are marked VALID and agents agree, include the exact marker [CONSENSUS_REACHED] in your response.");
+        }
         sb.AppendLine("If PENDING or INVALID opinions remain on critical topics, clearly state what evidence is needed.");
         sb.AppendLine();
         sb.AppendLine("Additionally, pose 2-3 targeted debate questions for the agents to address in the next round.");
