@@ -42,21 +42,8 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
 
         if (input.PreviousRounds.Count > 0)
         {
-            sb.AppendLine("=== PREVIOUS DISCUSSION ===");
-            foreach (var round in input.PreviousRounds)
-            {
-                sb.AppendLine($"--- Round {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS DISCUSSION ===");
-            sb.AppendLine();
-            sb.AppendLine($"Based on the previous discussion and orchestrator feedback, refine your analysis from your specialty perspective ({specialty}).");
+            sb.AppendLine("The previous discussion (responses from all agents and orchestrator summaries) is in the shared conversation history.");
+            sb.AppendLine($"Refine your analysis from your specialty perspective ({specialty}).");
             sb.AppendLine();
             sb.AppendLine("You MUST do the following:");
             sb.AppendLine("1. **Validate other agents' opinions:** Review each opinion from other agents. For each, state whether you agree or disagree and provide counter-evidence or supporting evidence.");

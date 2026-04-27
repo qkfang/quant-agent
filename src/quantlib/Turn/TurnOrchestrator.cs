@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
 using QuantLib.Agents;
@@ -12,12 +13,14 @@ public class TurnOrchestrator
     private const int MinRounds = 3;
     private const int MaxRounds = 10;
 
+    private readonly AIProjectClient _aiProjectClient;
     private readonly QuantAgent[] _agents;
     private readonly TurnOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
 
     public TurnOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null)
     {
+        _aiProjectClient = aiProjectClient;
         _logger = logger;
 
         _agents =
@@ -35,6 +38,11 @@ public class TurnOrchestrator
     {
         var rounds = new List<TurnRound>();
 
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
+        _logger.LogInformation("Created shared conversation {ConversationId}", conversationId);
+
         for (int round = 1; round <= MaxRounds; round++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -51,7 +59,7 @@ public class TurnOrchestrator
                 if (i > 0)
                 {
                     var guidancePrompt = BuildStepGuidancePrompt(userInput, rounds, responses, agent.Name, agent.Specialty, round);
-                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt);
+                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt, conversationId);
                     orchestratorGuidance = guidanceResult.Text;
                 }
 
@@ -62,7 +70,7 @@ public class TurnOrchestrator
                 string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
                 var agentText = new StringBuilder();
                 var citations = new List<SearchCitation>();
-                await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken, citations))
+                await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken, citations, conversationId))
                 {
                     agentText.Append(delta);
                     yield return AgentEvent.Delta(round, agent.Name, agent.Specialty, delta);
@@ -75,7 +83,7 @@ public class TurnOrchestrator
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             var summaryText = new StringBuilder();
-            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken, conversationId: conversationId))
             {
                 summaryText.Append(delta);
                 yield return AgentEvent.OrchestratorDeltaEvent(round, delta);
@@ -100,7 +108,7 @@ public class TurnOrchestrator
         yield return AgentEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
         var finalText = new StringBuilder();
-        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken, conversationId: conversationId))
         {
             finalText.Append(delta);
             yield return AgentEvent.FinalReportDeltaEvent(delta);
@@ -118,6 +126,10 @@ public class TurnOrchestrator
         Console.WriteLine();
         Console.WriteLine($"  User Request: {userInput}");
         Console.WriteLine(new string('═', 62));
+
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
 
         var rounds = new List<TurnRound>();
 
@@ -140,7 +152,7 @@ public class TurnOrchestrator
                     Console.WriteLine();
 
                     var guidancePrompt = BuildStepGuidancePrompt(userInput, rounds, responses, agent.Name, agent.Specialty, round);
-                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt);
+                    var guidanceResult = await _orchestrator.RunAsync(guidancePrompt, conversationId);
                     orchestratorGuidance = guidanceResult.Text;
 
                     Console.WriteLine($"  \u001b[33m┌─ [Orchestrator → {agent.Name}] ─┐\u001b[0m");
@@ -153,7 +165,7 @@ public class TurnOrchestrator
                 Console.WriteLine();
 
                 string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
-                var result = await agent.RunAsync(agentPrompt);
+                var result = await agent.RunAsync(agentPrompt, conversationId);
                 responses.Add(new TurnResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
 
                 var color = agent.Name switch
@@ -173,7 +185,7 @@ public class TurnOrchestrator
             Console.WriteLine("  \u001b[33m⟶ Orchestrator validating views and deciding next action...\u001b[0m");
             Console.WriteLine();
 
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt, conversationId);
             var summary = summaryResult.Text;
 
             rounds.Add(new TurnRound(round, responses, summary));
@@ -201,7 +213,7 @@ public class TurnOrchestrator
         Console.WriteLine(new string('═', 62));
 
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt, conversationId);
 
         Console.WriteLine($"\u001b[36m{finalResult.Text}\u001b[0m");
         Console.WriteLine();
@@ -238,36 +250,8 @@ public class TurnOrchestrator
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS TURNS ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Turn {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS TURNS ===");
-            sb.AppendLine();
-        }
-
-        if (currentResponses.Count > 0)
-        {
-            sb.AppendLine("=== CURRENT TURN RESPONSES SO FAR ===");
-            foreach (var resp in currentResponses)
-            {
-                sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END CURRENT RESPONSES ===");
-            sb.AppendLine();
-        }
+        sb.AppendLine("All prior turns and the current turn's earlier agent responses are available in the shared conversation history.");
+        sb.AppendLine();
 
         if (!string.IsNullOrEmpty(orchestratorGuidance))
         {
@@ -279,12 +263,12 @@ public class TurnOrchestrator
         }
         else if (currentResponses.Count > 0)
         {
-            sb.AppendLine($"Based on the analyses above, provide your perspective from your specialty ({specialty}).");
+            sb.AppendLine($"Based on the analyses already in this turn, provide your perspective from your specialty ({specialty}).");
             sb.AppendLine("Build upon, validate, or challenge the previous agents' views.");
         }
         else if (previousRounds.Count > 0)
         {
-            sb.AppendLine($"Based on the previous turns and orchestrator feedback, refine your analysis from your specialty perspective ({specialty}).");
+            sb.AppendLine($"Refine your analysis from your specialty perspective ({specialty}) based on the prior turns and orchestrator feedback.");
         }
         else
         {
@@ -304,35 +288,10 @@ public class TurnOrchestrator
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine($"Current turn: {currentRound}/{MaxRounds}");
         sb.AppendLine();
-        sb.AppendLine($"The next agent to analyze is: {nextAgentName} ({nextAgentSpecialty})");
+        sb.AppendLine($"The next agent to analyze is: {nextAgentName} ({nextAgentSpecialty}).");
+        sb.AppendLine("All prior turn responses and the current turn's responses so far are available in the shared conversation history.");
         sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS TURNS ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Turn {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName}]: {Truncate(resp.Message, 300)}");
-                }
-                sb.AppendLine($"[Summary]: {Truncate(round.OrchestratorSummary, 300)}");
-            }
-            sb.AppendLine("=== END PREVIOUS TURNS ===");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("=== CURRENT TURN RESPONSES SO FAR ===");
-        foreach (var resp in currentResponses)
-        {
-            sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END CURRENT RESPONSES ===");
-        sb.AppendLine();
-
-        sb.AppendLine($"Based on the analysis so far, provide focused guidance for {nextAgentName} ({nextAgentSpecialty}).");
+        sb.AppendLine($"Provide focused guidance for {nextAgentName} ({nextAgentSpecialty}).");
         sb.AppendLine("What specific aspects should they focus on? What gaps need to be addressed from their specialty?");
         sb.AppendLine("Keep your guidance concise (2-3 sentences).");
 
@@ -345,34 +304,8 @@ public class TurnOrchestrator
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine($"Current turn: {currentRound}/{MaxRounds}");
         sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS TURNS ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Turn {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Your Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS TURNS ===");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("=== CURRENT TURN RESPONSES (Sequential: Alpha → Pricing → Risk) ===");
-        foreach (var resp in currentResponses)
-        {
-            sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END CURRENT TURN ===");
-        sb.AppendLine();
-        sb.AppendLine("Each agent was guided by you and built upon the previous agent's analysis.");
+        sb.AppendLine("All agent responses for this turn (and prior turns + your earlier summaries) are already in the shared conversation history.");
+        sb.AppendLine("Each agent was guided by you and built upon the previous agent's analysis (Sequential: Alpha → Pricing → Risk).");
         sb.AppendLine("Validate whether the combined view is coherent and correct.");
         sb.AppendLine("Identify areas of agreement, disagreement, and gaps.");
         if (currentRound < MinRounds)
@@ -395,20 +328,7 @@ public class TurnOrchestrator
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine();
-        sb.AppendLine("=== COMPLETE TURN HISTORY ===");
-        foreach (var round in allRounds)
-        {
-            sb.AppendLine($"--- Turn {round.RoundNumber} ---");
-            foreach (var resp in round.Responses)
-            {
-                sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                sb.AppendLine();
-            }
-            sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END TURN HISTORY ===");
-        sb.AppendLine();
+        sb.AppendLine("The complete turn history (all agent responses and your round summaries) is in the shared conversation.");
         sb.AppendLine("Produce a comprehensive final analysis report for the user. Synthesize all perspectives (alpha, pricing, risk) into a cohesive assessment. Include key findings, risk considerations, opportunities, and actionable recommendations.");
 
         return sb.ToString();

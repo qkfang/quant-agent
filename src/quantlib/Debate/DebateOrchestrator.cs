@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
+using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
 
@@ -11,6 +12,7 @@ public class DebateOrchestrator
     private const int MinRounds = 3;
     private const int MaxRounds = 5;
 
+    private readonly AIProjectClient _aiProjectClient;
     private readonly PricingQuantAgent _pricingQuant;
     private readonly RiskQuantAgent _riskQuant;
     private readonly AlphaQuantAgent _alphaQuant;
@@ -19,6 +21,7 @@ public class DebateOrchestrator
 
     public DebateOrchestrator(AIProjectClient aiProjectClient, string deploymentName, ILogger logger, string? searchConnectionId = null, string? searchIndexName = null, string? bingConnectionId = null)
     {
+        _aiProjectClient = aiProjectClient;
         _logger = logger;
 
         _pricingQuant = new PricingQuantAgent(aiProjectClient, deploymentName, searchConnectionId, searchIndexName, bingConnectionId, logger);
@@ -32,6 +35,11 @@ public class DebateOrchestrator
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var rounds = new List<DebateRound>();
+
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
+        _logger.LogInformation("Created shared conversation {ConversationId}", conversationId);
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -64,7 +72,7 @@ public class DebateOrchestrator
                 var text = new StringBuilder();
                 var citations = new List<SearchCitation>();
                 string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
-                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations))
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations, conversationId))
                 {
                     text.Append(delta);
                     await channel.Writer.WriteAsync(AgentEvent.Delta(round, agent.Name, agent.Specialty, delta), cancellationToken);
@@ -87,7 +95,7 @@ public class DebateOrchestrator
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             var summaryText = new StringBuilder();
-            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken, conversationId: conversationId))
             {
                 summaryText.Append(delta);
                 yield return AgentEvent.OrchestratorDeltaEvent(round, delta);
@@ -112,7 +120,7 @@ public class DebateOrchestrator
         yield return AgentEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
         var finalText = new StringBuilder();
-        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken, conversationId: conversationId))
         {
             finalText.Append(delta);
             yield return AgentEvent.FinalReportDeltaEvent(delta);
@@ -140,6 +148,10 @@ public class DebateOrchestrator
         Console.WriteLine($"  User Request: {userInput}");
         Console.WriteLine(new string('═', 62));
 
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
+
         var rounds = new List<DebateRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
@@ -156,7 +168,7 @@ public class DebateOrchestrator
             var tasks = allAgents.Select(agent => Task.Run(async () =>
             {
                 string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
-                var result = await agent.RunAsync(prompt);
+                var result = await agent.RunAsync(prompt, conversationId);
                 await channel.Writer.WriteAsync(new DebateResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
             })).ToArray();
             _ = Task.WhenAll(tasks).ContinueWith(
@@ -188,7 +200,7 @@ public class DebateOrchestrator
             Console.WriteLine("  \u001b[33m⟶ Orchestrator summarizing and evaluating consensus...\u001b[0m");
             Console.WriteLine();
 
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt, conversationId);
             var summary = summaryResult.Text;
 
             rounds.Add(new DebateRound(round, responses, summary));
@@ -216,7 +228,7 @@ public class DebateOrchestrator
         Console.WriteLine(new string('═', 62));
 
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt, conversationId);
 
         Console.WriteLine($"\u001b[36m{finalResult.Text}\u001b[0m");
         Console.WriteLine();
@@ -230,32 +242,7 @@ public class DebateOrchestrator
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine($"Current round: {currentRound}/{MaxRounds}");
         sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS ROUNDS ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Round {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.AgentName}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Your Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS ROUNDS ===");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("=== CURRENT ROUND RESPONSES ===");
-        foreach (var resp in currentResponses)
-        {
-            sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END CURRENT ROUND ===");
+        sb.AppendLine("All agent responses for this round (and prior rounds + your earlier summaries) are already in the shared conversation history.");
         sb.AppendLine();
         sb.AppendLine("Strictly evaluate every opinion from all agents in this round. For EACH opinion:");
         sb.AppendLine("- Assess the supporting evidence and mark the opinion as:");
@@ -297,19 +284,7 @@ public class DebateOrchestrator
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine();
-        sb.AppendLine("=== COMPLETE DISCUSSION HISTORY ===");
-        foreach (var round in allRounds)
-        {
-            sb.AppendLine($"--- Round {round.RoundNumber} ---");
-            foreach (var resp in round.Responses)
-            {
-                sb.AppendLine($"[{resp.AgentName} - {resp.Specialty}]: {resp.Message}");
-                sb.AppendLine();
-            }
-            sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END DISCUSSION ===");
+        sb.AppendLine("The complete discussion across all rounds (agent responses and your round summaries) is in the shared conversation history.");
         sb.AppendLine();
         sb.AppendLine("Produce a comprehensive final analysis report. Structure the report as follows:");
         sb.AppendLine();

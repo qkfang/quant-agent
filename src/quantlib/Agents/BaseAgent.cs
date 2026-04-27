@@ -51,7 +51,7 @@ public abstract class BaseAgent
         _responseClient = aiProjectClient.ProjectOpenAIClient.GetProjectResponsesClientForAgent(agentVersion.Name);
     }
 
-    public async Task<AgentResult> RunAsync(string message)
+    public async Task<AgentResult> RunAsync(string message, string? conversationId = null)
     {
         var sw = Stopwatch.StartNew();
 
@@ -59,6 +59,8 @@ public abstract class BaseAgent
         {
             InputItems = { ResponseItem.CreateUserMessageItem(message) }
         };
+        if (!string.IsNullOrEmpty(conversationId))
+            nextOptions.AgentConversationId = conversationId;
 
         ResponseResult? result = null;
 
@@ -87,7 +89,7 @@ public abstract class BaseAgent
         return new AgentResult(text, citations);
     }
 
-    public async IAsyncEnumerable<string> RunStreamingAsync(string message, [EnumeratorCancellation] CancellationToken cancellationToken = default, List<SearchCitation>? citationsOutput = null)
+    public async IAsyncEnumerable<string> RunStreamingAsync(string message, [EnumeratorCancellation] CancellationToken cancellationToken = default, List<SearchCitation>? citationsOutput = null, string? conversationId = null)
     {
         var sw = Stopwatch.StartNew();
 
@@ -95,6 +97,8 @@ public abstract class BaseAgent
         {
             InputItems = { ResponseItem.CreateUserMessageItem(message) }
         };
+        if (!string.IsNullOrEmpty(conversationId))
+            nextOptions.AgentConversationId = conversationId;
 
         ResponseResult? completedResponse = null;
 

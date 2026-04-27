@@ -42,22 +42,9 @@ internal sealed class CompareAgentExecutor : Executor<CompareRoundInput, Compare
 
         if (input.PreviousRounds.Count > 0)
         {
-            sb.AppendLine("=== PREVIOUS DISCUSSION ===");
-            foreach (var round in input.PreviousRounds)
-            {
-                sb.AppendLine($"--- Round {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.ModelName}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS DISCUSSION ===");
-            sb.AppendLine();
-            sb.AppendLine($"Based on the previous discussion and orchestrator feedback, please refine your analysis (you are responding as model: {modelName}).");
-            sb.AppendLine("Address any disagreements or gaps identified. State clearly whether you agree or disagree with the other models' views and why.");
+            sb.AppendLine($"You are responding as model: {modelName}. The previous discussion (responses from all models and orchestrator feedback) is in the shared conversation history.");
+            sb.AppendLine("Refine your analysis. Address any disagreements or gaps the orchestrator identified.");
+            sb.AppendLine("State clearly whether you agree or disagree with the other models' views and why.");
         }
         else
         {

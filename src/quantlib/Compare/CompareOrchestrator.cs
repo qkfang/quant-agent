@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
+using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using Microsoft.Extensions.Logging;
 using QuantLib.Agents;
@@ -11,6 +12,7 @@ public class CompareOrchestrator
 {
     private const int MaxRounds = 3;
 
+    private readonly AIProjectClient _aiProjectClient;
     private readonly List<CompareAgent> _agents;
     private readonly CompareOrchestratorAgent _orchestrator;
     private readonly ILogger _logger;
@@ -24,6 +26,7 @@ public class CompareOrchestrator
         string? searchIndexName = null,
         string? bingConnectionId = null)
     {
+        _aiProjectClient = aiProjectClient;
         _logger = logger;
         _agents = new List<CompareAgent>();
 
@@ -41,6 +44,11 @@ public class CompareOrchestrator
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var rounds = new List<CompareRound>();
+
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
+        _logger.LogInformation("Created shared conversation {ConversationId}", conversationId);
 
         for (int round = 1; round <= MaxRounds; round++)
         {
@@ -71,7 +79,7 @@ public class CompareOrchestrator
                 var text = new StringBuilder();
                 var citations = new List<SearchCitation>();
                 string prompt = CompareAgentExecutor.BuildPrompt(roundInput, agent.ModelName);
-                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations))
+                await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations, conversationId))
                 {
                     text.Append(delta);
                     await channel.Writer.WriteAsync(CompareEvent.Delta(round, agent.ModelName, agent.ModelName, delta), cancellationToken);
@@ -94,7 +102,7 @@ public class CompareOrchestrator
 
             string orchestratorPrompt = BuildOrchestratorPrompt(userInput, rounds, responses, round);
             var summaryText = new StringBuilder();
-            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken))
+            await foreach (var delta in _orchestrator.RunStreamingAsync(orchestratorPrompt, cancellationToken, conversationId: conversationId))
             {
                 summaryText.Append(delta);
                 yield return CompareEvent.OrchestratorDeltaEvent(round, delta);
@@ -119,7 +127,7 @@ public class CompareOrchestrator
         yield return CompareEvent.FinalStarted();
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
         var finalText = new StringBuilder();
-        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken))
+        await foreach (var delta in _orchestrator.RunStreamingAsync(finalPrompt, cancellationToken, conversationId: conversationId))
         {
             finalText.Append(delta);
             yield return CompareEvent.FinalReportDeltaEvent(delta);
@@ -148,6 +156,10 @@ public class CompareOrchestrator
         Console.WriteLine($"  Models: {string.Join(", ", _agents.Select(a => a.ModelName))}");
         Console.WriteLine(new string('═', 62));
 
+        ProjectConversation conversation = await _aiProjectClient.ProjectOpenAIClient
+            .GetProjectConversationsClient().CreateProjectConversationAsync();
+        string conversationId = conversation.Id;
+
         var rounds = new List<CompareRound>();
 
         for (int round = 1; round <= MaxRounds; round++)
@@ -163,7 +175,7 @@ public class CompareOrchestrator
             var tasks = _agents.Select(agent => Task.Run(async () =>
             {
                 string prompt = CompareAgentExecutor.BuildPrompt(roundInput, agent.ModelName);
-                var result = await agent.RunAsync(prompt);
+                var result = await agent.RunAsync(prompt, conversationId);
                 await channel.Writer.WriteAsync(new CompareResponse(agent.ModelName, agent.ModelName, result.Text, result.Citations));
             })).ToArray();
             _ = Task.WhenAll(tasks).ContinueWith(
@@ -191,7 +203,7 @@ public class CompareOrchestrator
             Console.WriteLine("  \u001b[33m⟶ Orchestrator comparing model outputs...\u001b[0m");
             Console.WriteLine();
 
-            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt);
+            var summaryResult = await _orchestrator.RunAsync(orchestratorPrompt, conversationId);
             var summary = summaryResult.Text;
             rounds.Add(new CompareRound(round, responses, summary));
 
@@ -218,7 +230,7 @@ public class CompareOrchestrator
         Console.WriteLine(new string('═', 62));
 
         string finalPrompt = BuildFinalSummaryPrompt(userInput, rounds);
-        var finalResult = await _orchestrator.RunAsync(finalPrompt);
+        var finalResult = await _orchestrator.RunAsync(finalPrompt, conversationId);
 
         Console.WriteLine($"\u001b[36m{finalResult.Text}\u001b[0m");
         Console.WriteLine();
@@ -232,33 +244,7 @@ public class CompareOrchestrator
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine($"Current round: {currentRound}/{MaxRounds}");
         sb.AppendLine();
-
-        if (previousRounds.Count > 0)
-        {
-            sb.AppendLine("=== PREVIOUS ROUNDS ===");
-            foreach (var round in previousRounds)
-            {
-                sb.AppendLine($"--- Round {round.RoundNumber} ---");
-                foreach (var resp in round.Responses)
-                {
-                    sb.AppendLine($"[{resp.ModelName}]: {resp.Message}");
-                    sb.AppendLine();
-                }
-                sb.AppendLine($"[Your Summary]: {round.OrchestratorSummary}");
-                sb.AppendLine();
-            }
-            sb.AppendLine("=== END PREVIOUS ROUNDS ===");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("=== CURRENT ROUND RESPONSES ===");
-        foreach (var resp in currentResponses)
-        {
-            sb.AppendLine($"[{resp.ModelName}]: {resp.Message}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END CURRENT ROUND ===");
-        sb.AppendLine();
+        sb.AppendLine("All model responses for this round are already in the shared conversation history.");
         sb.AppendLine("Compare the responses from all models. Identify differences in reasoning, depth, and conclusions.");
         sb.AppendLine("If all models substantially agree on the key conclusions, include the exact marker [CONSENSUS_REACHED] in your response.");
         sb.AppendLine("If there are still significant differences, clearly articulate what they are so models can address them in the next round.");
@@ -274,20 +260,7 @@ public class CompareOrchestrator
         var sb = new StringBuilder();
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine();
-        sb.AppendLine("=== COMPLETE DISCUSSION HISTORY ===");
-        foreach (var round in allRounds)
-        {
-            sb.AppendLine($"--- Round {round.RoundNumber} ---");
-            foreach (var resp in round.Responses)
-            {
-                sb.AppendLine($"[{resp.ModelName}]: {resp.Message}");
-                sb.AppendLine();
-            }
-            sb.AppendLine($"[Orchestrator Summary]: {round.OrchestratorSummary}");
-            sb.AppendLine();
-        }
-        sb.AppendLine("=== END DISCUSSION ===");
-        sb.AppendLine();
+        sb.AppendLine("The complete discussion across all rounds is in the shared conversation history.");
         sb.AppendLine("Produce a comprehensive final comparison report. Synthesize the best insights from all models.");
         sb.AppendLine("Compare each model's strengths and weaknesses in their analysis.");
         sb.AppendLine("Include key findings, areas of agreement, notable divergences, and actionable recommendations.");
