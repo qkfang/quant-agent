@@ -27,34 +27,41 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
     public override async ValueTask<DebateResponse> HandleAsync(
         DebateRoundInput input, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
-        string prompt = BuildPrompt(input, _agent.Specialty);
+        string prompt = BuildPrompt(input, _agent.Name, _agent.Specialty);
         _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", _agent.Name, _agent.Specialty);
         var result = await _agent.RunAsync(prompt);
         _logger.LogInformation("Agent {Name} completed analysis.", _agent.Name);
         return new DebateResponse(_agent.Name, _agent.Specialty, result.Text, result.Citations);
     }
 
-    internal static string BuildPrompt(DebateRoundInput input, string specialty)
+    internal static string BuildPrompt(DebateRoundInput input, string agentName, string specialty)
     {
         var sb = new StringBuilder();
+        sb.AppendLine($"You are **{agentName}** ({specialty}). Any prior message in the shared conversation history attributed to \"{agentName}\" is YOUR OWN previous opinion - do not treat it as another agent's view.");
+        sb.AppendLine();
         sb.AppendLine($"User request: {input.UserInput}");
         sb.AppendLine();
 
         if (input.PreviousRounds.Count > 0)
         {
             sb.AppendLine("The previous discussion (responses from all agents and orchestrator summaries) is in the shared conversation history.");
+            sb.AppendLine("Before responding, scan the history and identify:");
+            sb.AppendLine($"  - Opinions you ({agentName}) authored previously - these are YOURS to defend, refine, or retract.");
+            sb.AppendLine("  - Opinions authored by the OTHER agents - these are the ones to validate.");
+            sb.AppendLine("  - The orchestrator's feedback may quote or summarize your prior opinions; treat them as yours when the orchestrator attributes them to your name.");
+            sb.AppendLine();
             sb.AppendLine($"Refine your analysis from your specialty perspective ({specialty}).");
             sb.AppendLine();
             sb.AppendLine("You MUST do the following:");
-            sb.AppendLine("1. **Validate other agents' opinions:** Review each opinion from other agents. For each, state whether you agree or disagree and provide counter-evidence or supporting evidence.");
-            sb.AppendLine("2. **Update your own opinions:** Based on the discussion, revise, add, or remove opinions. Each opinion must include evidence and a confidence level.");
+            sb.AppendLine("1. **Validate OTHER agents' opinions only:** For each opinion from agents other than yourself, state whether you agree or disagree and provide counter-evidence or supporting evidence. Do NOT re-validate your own prior opinions as if they belonged to someone else.");
+            sb.AppendLine("2. **Update your own opinions:** Address the orchestrator's feedback on YOUR prior opinions. Defend, revise, or retract them with new evidence. Each opinion must include evidence and a confidence level.");
             sb.AppendLine();
             sb.AppendLine("Structure your response as:");
             sb.AppendLine("### Validation of Other Agents' Opinions");
-            sb.AppendLine("- [Agent Name] Opinion [N]: Agree/Disagree - [Your reasoning and evidence]");
+            sb.AppendLine("- [Other Agent Name] Opinion [N]: Agree/Disagree - [Your reasoning and evidence]");
             sb.AppendLine();
-            sb.AppendLine("### My Quant Opinions");
-            sb.AppendLine("**Opinion [N]:** [Statement]");
+            sb.AppendLine($"### My ({agentName}) Updated Opinions");
+            sb.AppendLine("**Opinion [N]:** [Statement] (New / Revised from prior round / Retracted)");
             sb.AppendLine("- **Evidence:** [Supporting evidence]");
             sb.AppendLine("- **Confidence:** [High / Medium / Low]");
         }
@@ -69,7 +76,7 @@ internal abstract class DebateAgentExecutorBase : Executor<DebateRoundInput, Deb
         }
 
         sb.AppendLine();
-        sb.AppendLine("IMPORTANT: Keep your entire response under 150 words.");
+        sb.AppendLine($"IMPORTANT: Sign off with your name (\"{agentName}\") and keep your entire response under 150 words.");
 
         return sb.ToString();
     }

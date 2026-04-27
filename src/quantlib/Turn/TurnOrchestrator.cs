@@ -67,7 +67,7 @@ public class TurnOrchestrator
                 yield return AgentEvent.Started(round, agent.Name, agent.Specialty, inputDesc);
 
                 _logger.LogInformation("Agent {Name} ({Specialty}) is analyzing...", agent.Name, agent.Specialty);
-                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
+                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Name, agent.Specialty, orchestratorGuidance);
                 var agentText = new StringBuilder();
                 var citations = new List<SearchCitation>();
                 await foreach (var delta in agent.RunStreamingAsync(agentPrompt, cancellationToken, citations, conversationId))
@@ -164,7 +164,7 @@ public class TurnOrchestrator
                 Console.WriteLine($"  ⟶ Running {agent.Name} ({agent.Specialty})...");
                 Console.WriteLine();
 
-                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Specialty, orchestratorGuidance);
+                string agentPrompt = BuildAgentPrompt(userInput, rounds, responses, agent.Name, agent.Specialty, orchestratorGuidance);
                 var result = await agent.RunAsync(agentPrompt, conversationId);
                 responses.Add(new TurnResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
 
@@ -245,12 +245,15 @@ public class TurnOrchestrator
     }
 
     private static string BuildAgentPrompt(string userInput, IReadOnlyList<TurnRound> previousRounds,
-        IReadOnlyList<TurnResponse> currentResponses, string specialty, string orchestratorGuidance)
+        IReadOnlyList<TurnResponse> currentResponses, string agentName, string specialty, string orchestratorGuidance)
     {
         var sb = new StringBuilder();
+        sb.AppendLine($"You are **{agentName}** ({specialty}). Any prior message in the shared conversation history attributed to \"{agentName}\" is YOUR OWN previous opinion - defend, refine, or retract it. Do NOT treat it as another agent's view to validate.");
+        sb.AppendLine();
         sb.AppendLine($"User request: {userInput}");
         sb.AppendLine();
         sb.AppendLine("All prior turns and the current turn's earlier agent responses are available in the shared conversation history.");
+        sb.AppendLine($"Before responding, scan the history and distinguish opinions you ({agentName}) authored from those authored by OTHER agents. The orchestrator may quote your prior opinions back to you - treat them as yours when attributed to your name.");
         sb.AppendLine();
 
         if (!string.IsNullOrEmpty(orchestratorGuidance))
@@ -264,11 +267,11 @@ public class TurnOrchestrator
         else if (currentResponses.Count > 0)
         {
             sb.AppendLine($"Based on the analyses already in this turn, provide your perspective from your specialty ({specialty}).");
-            sb.AppendLine("Build upon, validate, or challenge the previous agents' views.");
+            sb.AppendLine("Build upon, validate, or challenge the OTHER agents' views (not your own prior views).");
         }
         else if (previousRounds.Count > 0)
         {
-            sb.AppendLine($"Refine your analysis from your specialty perspective ({specialty}) based on the prior turns and orchestrator feedback.");
+            sb.AppendLine($"Refine your analysis from your specialty perspective ({specialty}) based on the prior turns and orchestrator feedback. Defend, revise, or retract YOUR prior opinions explicitly.");
         }
         else
         {
@@ -276,7 +279,7 @@ public class TurnOrchestrator
         }
 
         sb.AppendLine();
-        sb.AppendLine("IMPORTANT: Keep your entire response under 150 words.");
+        sb.AppendLine($"IMPORTANT: Sign off with your name (\"{agentName}\") and keep your entire response under 150 words.");
 
         return sb.ToString();
     }

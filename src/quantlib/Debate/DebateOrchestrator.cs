@@ -71,7 +71,7 @@ public class DebateOrchestrator
             {
                 var text = new StringBuilder();
                 var citations = new List<SearchCitation>();
-                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
+                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Name, agent.Specialty);
                 await foreach (var delta in agent.RunStreamingAsync(prompt, cancellationToken, citations, conversationId))
                 {
                     text.Append(delta);
@@ -167,7 +167,7 @@ public class DebateOrchestrator
             QuantAgent[] allAgents = [_pricingQuant, _riskQuant, _alphaQuant];
             var tasks = allAgents.Select(agent => Task.Run(async () =>
             {
-                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Specialty);
+                string prompt = DebateAgentExecutorBase.BuildPrompt(roundInput, agent.Name, agent.Specialty);
                 var result = await agent.RunAsync(prompt, conversationId);
                 await channel.Writer.WriteAsync(new DebateResponse(agent.Name, agent.Specialty, result.Text, result.Citations));
             })).ToArray();
