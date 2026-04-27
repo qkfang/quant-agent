@@ -239,9 +239,11 @@
 
 <style>
     .research-container {
-        max-width: 1400px;
+        max-width: min(1400px, 100%);
         margin: 0 auto;
         padding: 1rem;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .research-header {
@@ -430,9 +432,10 @@
     /* Lane Headers */
     .lane-headers {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.5rem;
         margin-bottom: 0.5rem;
+        max-width: 100%;
     }
 
     .lane-hdr {
@@ -478,14 +481,17 @@
     /* Grid Rows */
     .grid-row {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.5rem;
         margin-bottom: 0.5rem;
+        max-width: 100%;
     }
 
     .grid-cell {
         min-height: 2rem;
         padding: 0.25rem;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .grid-cell.full-width {
@@ -519,8 +525,23 @@
 
     .msg-body {
         word-break: break-word;
+        overflow-wrap: anywhere;
         color: #374151;
         line-height: 1.5;
+        max-width: 100%;
+    }
+
+    .msg-body pre,
+    .msg-body code {
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+    }
+
+    .msg-body img,
+    .msg-body table {
+        max-width: 100%;
     }
 
     .msg-body p { margin: 0.25rem 0; }
@@ -699,13 +720,13 @@
 
     @@media (max-width: 900px) {
         .lane-headers, .grid-row {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @@media (max-width: 600px) {
         .lane-headers, .grid-row {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
         }
     }
 </style>
